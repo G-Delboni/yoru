@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca, enso %}
+
+{% block titulo %}{{ area.name }}{% endblock %}
+
+{% macro estado(r, status, rotulo) -%}
+<form class="mini-form" method="post" action="/recursos/{{ r.id }}/estado">
+  <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+  <input type="hidden" name="status" value="{{ status }}">
+  <button type="submit" class="acao">{{ rotulo }}</button>
+</form>
+{%- endmacro %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    {% if current %}
+    <div>
+      <div class="sobretitulo">Lendo agora</div>
+      <h1 class="titulo">{{ current.title }}</h1>
+      {% if current.author %}<div class="linha-sub" style="margin-top:6px;font-size:13px">{{ current.author }}</div>{% endif %}
+    </div>
+    {% if last_note and not last_note.did.startswith(current.title ~ ":") %}
+    <p class="citacao">{{ last_note.did }}</p>
+    {% endif %}
+    <form class="form-linha" method="post" action="/recursos/{{ current.id }}/progresso">
+      <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+      <label for="pagina" class="linha-sub">Estou na página</label>
+      <input id="pagina" name="current" inputmode="numeric" placeholder="{{ current.progress_current | int }}" required>
+      <label for="nota-livro" class="sr-only">Anotação ou citação (opcional)</label>
+      <input id="nota-livro" name="note" class="longo" placeholder="Anotação ou citação, se quiser">
+      <button type="submit" class="link-sublinhado">Registrar</button>
+    </form>
+    <div class="botoes">
+      {{ estado(current, "finished", "terminei") }}
+      {{ estado(current, "paused", "pausar") }}
+    </div>
+    {% else %}
+    <div>
+      <div class="sobretitulo">{{ area.name }}</div>
+      <h1 class="titulo">Nenhum livro aberto</h1>
+    </div>
+    <p class="paragrafo">
+      {% if wanted %}O próximo da fila é “{{ wanted[0].title }}”.
+      {% else %}Adicione um livro em “quero ler”, abaixo.{% endif %}
+    </p>
+    {% if wanted %}<div>{{ estado(wanted[0], "active", "Começar a ler") }}</div>{% endif %}
+    {% endif %}
+  </div>
+
+  {% if current and current.progress_total %}
+  <div class="enso">
+    <div class="enso-circulo">
+      {{ enso(fraction(current), 200) }}
+      <div class="enso-centro">
+        <span class="enso-numero">{{ current.progress_current | int }}</span>
+        <span class="enso-rotulo">de {{ current.progress_total | int }} páginas</span>
+      </div>
+    </div>
+    <div class="enso-nota">
+      {% if days_left %}No ritmo atual, termina em {{ days_left }} {{ "dia" if days_left == 1 else "dias" }}.
+      {% else %}Registre as páginas para ver quando termina.{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block agua %}
+<div class="colunas">
+  <section class="coluna" aria-labelledby="t-fila">
+    {{ marca("積読", "quero ler") }}
+    <div class="coluna-corpo">
+      <h2 id="t-fila" class="sr-only">Quero ler</h2>
+      {% for b in other_active %}
+      <div class="linha item">
+        <span class="linha-titulo">{{ b.title }}<span class="linha-sub">também lendo{% if b.progress_total %}, página {{ b.progress_current | int }} de {{ b.progress_total | int }}{% endif %}</span></span>
+        <span class="acoes">{{ estado(b, "paused", "pausar") }}{{ estado(b, "finished", "terminei") }}</span>
+      </div>
+      {% endfor %}
+      {% for b in wanted %}
+      <div class="linha item">
+        <span class="linha-titulo">{{ b.title }}{% if b.author %}<span class="linha-sub">{{ b.author }}</span>{% endif %}</span>
+        <span class="acoes">
+          {{ estado(b, "active", "começar") }}
+          <form class="mini-form" method="post" action="/recursos/{{ b.id }}/excluir">
+            <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+            <button type="submit" class="acao">excluir</button>
+          </form>
+        </span>
+      </div>
+      {% endfor %}
+      {% for b in paused %}
+      <div class="linha item">
+        <span class="linha-titulo" style="color:var(--texto-2)">{{ b.title }}<span class="linha-sub">pausado{% if b.progress_total %} na página {{ b.progress_current | int }}{% endif %}</span></span>
+        <span class="acoes">{{ estado(b, "active", "retomar") }}</span>
+      </div>
+      {% endfor %}
+      {% if not wanted and not paused and not other_active %}<p class="vazio">A fila está vazia.</p>{% endif %}
+
+      <details id="novo-livro" class="adicionar">
+        <summary>Novo livro</summary>
+        <form class="form-grade" method="post" action="/recursos">
+          <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+          <input type="hidden" name="area_id" value="{{ area.id }}">
+          <input type="hidden" name="kind" value="book">
+          <input type="hidden" name="progress_unit" value="páginas">
+          <div class="campo largo"><label for="l-titulo">Título</label><input id="l-titulo" name="title" required></div>
+          <div class="campo"><label for="l-autor">Autor</label><input id="l-autor" name="author"></div>
+          <div class="campo"><label for="l-pag">Páginas</label><input id="l-pag" name="progress_total" inputmode="numeric" placeholder="296"></div>
+          <div class="campo"><label for="l-estado">Situação</label>
+            <select id="l-estado" name="status"><option value="wanted">Quero ler</option><option value="active">Já estou lendo</option></select></div>
+          <div class="campo"><label for="l-atual">Se já começou, em que página está</label><input id="l-atual" name="progress_current" inputmode="numeric" placeholder="0"></div>
+          <div class="acoes-form"><button type="submit" class="link-sublinhado">Adicionar</button></div>
+        </form>
+      </details>
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-lidos">
+    {{ marca("読了", "lidos no ano") }}
+    <div class="coluna-corpo solto" style="gap:16px">
+      <h2 id="t-lidos" class="sr-only">Lidos no ano</h2>
+      <div class="cifra">
+        <span class="enso-numero">{{ done_year | length }}</span>
+        <span class="linha-sub">{% if goal_target %}de {{ goal_target }} na meta de {{ hoje.year }}{% else %}{{ "livro terminado" if done_year | length == 1 else "livros terminados" }} em {{ hoje.year }}{% endif %}</span>
+      </div>
+      {% if goal_target %}
+      <div style="display:flex;gap:8px;flex-wrap:wrap" aria-hidden="true">
+        {% for i in range(goal_target) %}
+        <i class="lua {{ 'lua-cheia' if i < done_year | length else ('lua-parcial' if i == done_year | length and current else '') }}" style="width:14px;height:14px"></i>
+        {% endfor %}
+      </div>
+      {% else %}
+      <details class="adicionar" style="margin:0">
+        <summary>Definir meta do ano</summary>
+        <form class="form-linha" method="post" action="/metas">
+          <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+          <input type="hidden" name="area_id" value="{{ area.id }}">
+          <input type="hidden" name="unit" value="livros">
+          <input type="hidden" name="title" value="Ler livros em {{ hoje.year }}">
+          <input type="hidden" name="due_date" value="{{ hoje.year }}-12-31">
+          <label for="meta-livros" class="linha-sub">ler</label>
+          <input id="meta-livros" name="target_value" inputmode="numeric" placeholder="12" required>
+          <span class="linha-sub">livros</span>
+          <button type="submit" class="acao">salvar</button>
+        </form>
+      </details>
+      {% endif %}
+      <div>
+        {% for b in done_year[:5] %}
+        <div class="linha"><span class="linha-titulo" style="color:var(--texto-2)">{{ b.title }}</span><span class="linha-meta">{{ b.finished_at | data_curta }}</span></div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-const">
+    {{ marca("習慣", "constância") }}
+    <div class="coluna-corpo solto" style="gap:16px">
+      <h2 id="t-const" class="sr-only">Constância</h2>
+      <div class="cifra">
+        <span class="enso-numero">{{ streak }}</span>
+        <span class="linha-sub">{{ "dia seguido lendo" if streak == 1 else "dias seguidos lendo" }}</span>
+      </div>
+      <div class="barras" role="img" aria-label="Páginas lidas por dia nos últimos 14 dias">
+        {% for v in bars %}
+        <i class="{{ 'hoje' if loop.last and v else ('cheia' if v else '') }}" style="--i:{{ loop.index0 }};height:{{ (v / bars_max * 100) | round | int if v else 2 }}%" title="{{ v | int }} páginas"></i>
+        {% endfor %}
+      </div>
+      <div style="display:flex;justify-content:space-between" class="linha-sub">
+        <span>páginas por dia, 14 dias</span><span>média {{ avg_pages | round | int }}</span>
+      </div>
+    </div>
+  </section>
+</div>
+{% include "partials/encerrar_area.html" %}
+{% endblock %}

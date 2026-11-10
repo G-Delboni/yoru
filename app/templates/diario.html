@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca %}
+
+{% block titulo %}Diário{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">Diário de bordo</div>
+      <h1 class="titulo">Onde você esteve</h1>
+    </div>
+    <p class="paragrafo">Cada dia encerrado deixa um registro: o que foi feito, onde parou e por onde retomar.</p>
+  </div>
+  <div class="enso"><a class="link-sublinhado" href="/encerrar">Encerrar o dia de hoje</a></div>
+</section>
+{% endblock %}
+
+{% block agua %}
+<section class="coluna unica" aria-labelledby="t-dias">
+  {{ marca("日誌", "diário") }}
+  <div class="coluna-corpo">
+    <h2 id="t-dias" class="sr-only">Registros por dia</h2>
+    {% for dia, registros in days %}
+    <article class="dia">
+      <div class="dia-data">{{ dia | data_curta | capitalize }}<small>{{ dia | data_longa }}</small></div>
+      <div class="dia-registros">
+        {% for r in registros %}
+        {%- set area = areas_by_id.get(r.area_id) -%}
+        <dl class="registro" style="margin:0">
+          <dt>{{ area.name if area else "Sem área" }}{% if r.minutes %}, {{ r.minutes }} min de foco{% endif %}</dt>
+          {% if r.did %}<dd>{{ r.did }}</dd>{% endif %}
+          {% if r.stopped_at %}<dt>Onde parou</dt><dd>{{ r.stopped_at }}</dd>{% endif %}
+          {% if r.next_step %}<dt>Próximo passo</dt><dd class="proximo">{{ r.next_step }}</dd>{% endif %}
+        </dl>
+        {% endfor %}
+      </div>
+    </article>
+    {% else %}
+    <p class="vazio">Nenhum dia registrado ainda. No fim do dia, use “Encerrar o dia de hoje”.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

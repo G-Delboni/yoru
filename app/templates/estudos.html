@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca, enso, progresso %}
+
+{% block titulo %}{{ area.name }}{% endblock %}
+
+{% macro duracao(m) -%}
+{%- if m >= 60 -%}{{ m // 60 }}h{% if m % 60 %} {{ "%02d" | format(m % 60) }}{% endif %}{%- else -%}{{ m }} min{%- endif -%}
+{%- endmacro %}
+
+{% block ceu %}
+{%- set ativos = subjects | selectattr("status.value", "equalto", "active") | list -%}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">Estudos por conta própria</div>
+      <h1 class="titulo">
+        {% if week_minutes %}Esta semana,<br>{{ duracao(week_minutes) }} de estudo
+        {% elif ativos %}Esta semana,<br>{{ ativos[:2] | map(attribute="title") | join(" e ") }}
+        {% else %}O que você quer<br>aprender agora?{% endif %}
+      </h1>
+    </div>
+    <p class="paragrafo">
+      {% if week_sessions %}{{ week_sessions | length }} {{ "sessão" if week_sessions | length == 1 else "sessões" }} desde segunda.{% endif %}
+      {% if goal_minutes %}
+        {% if week_minutes >= goal_minutes %}A meta de {{ duracao(goal_minutes) }} da semana foi cumprida.
+        {% else %}Faltam {{ duracao(goal_minutes - week_minutes) }} para a meta de {{ duracao(goal_minutes) }} até domingo.{% endif %}
+      {% elif not subjects %}Cadastre um assunto abaixo.{% endif %}
+    </p>
+    {% if goal_minutes %}<div style="max-width:480px">{{ progresso(week_minutes / goal_minutes) }}</div>
+    {% else %}
+    <details class="adicionar" style="margin:0">
+      <summary>Definir meta semanal</summary>
+      <form class="form-linha" method="post" action="/metas">
+        <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+        <input type="hidden" name="area_id" value="{{ area.id }}">
+        <input type="hidden" name="unit" value="horas por semana">
+        <input type="hidden" name="title" value="Estudar toda semana">
+        <label for="meta-h" class="linha-sub">estudar</label>
+        <input id="meta-h" name="target_value" inputmode="decimal" placeholder="5" required>
+        <span class="linha-sub">horas por semana</span>
+        <button type="submit" class="acao">salvar</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+
+  {% if ativos %}
+  <div class="ensos cena-figura" style="flex-direction:row;justify-content:center">
+    {% for r in ativos[:3] %}
+    <div class="enso-pequeno">
+      <div class="enso-circulo">
+        {{ enso(fraction(r), 120) }}
+        <div class="enso-centro"><span class="enso-numero">{% if r.progress_total %}{{ (fraction(r) * 100) | round | int }}<small>%</small>{% else %}<small>Em curso</small>{% endif %}</span></div>
+      </div>
+      <div>{{ r.title }}{% if r.progress_total %}<span class="linha-sub">{{ r.progress_current | num }} de {{ r.progress_total | num }} {{ r.progress_unit or "" }}</span>{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block agua %}
+<div class="colunas">
+  <section class="coluna" aria-labelledby="t-assuntos">
+    {{ marca("学", "assuntos") }}
+    <div class="coluna-corpo">
+      <h2 id="t-assuntos" class="sr-only">Assuntos</h2>
+      {% for r in subjects %}
+      <details class="linha item" style="display:block">
+        <summary style="list-style:none;cursor:pointer;display:flex;gap:14px;align-items:baseline">
+          <span class="linha-titulo">{{ r.title }}
+            <span class="linha-sub">{% if r.status.value == "wanted" %}quero estudar{% elif r.progress_total %}{{ r.progress_current | num }} de {{ r.progress_total | num }} {{ r.progress_unit or "" }}{% else %}em curso{% endif %}{% if r.author %}, {{ r.author }}{% endif %}</span>
+          </span>
+          <span class="linha-meta">registrar sessão</span>
+        </summary>
+        <form class="form-grade" method="post" action="/recursos/{{ r.id }}/progresso" style="margin-top:14px">
+          <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+          <div class="campo"><label for="min-{{ r.id }}">Minutos</label><input id="min-{{ r.id }}" name="minutes" inputmode="numeric" placeholder="45" required></div>
+          <div class="campo"><label for="adv-{{ r.id }}">Avancei ({{ r.progress_unit or "unidades" }})</label><input id="adv-{{ r.id }}" name="advance" inputmode="decimal" placeholder="1"></div>
+          <div class="campo largo"><label for="nt-{{ r.id }}">O que estudou</label><input id="nt-{{ r.id }}" name="note" placeholder="Dependências e injeção"></div>
+          <div class="acoes-form">
+            <button type="submit" class="link-sublinhado">Registrar</button>
+          </div>
+        </form>
+        <div class="botoes" style="margin-top:10px">
+          {% for st, rot in [("finished", "concluí"), ("paused", "pausar")] %}
+          <form class="mini-form" method="post" action="/recursos/{{ r.id }}/estado">
+            <input type="hidden" name="voltar" value="/area/{{ area.slug }}"><input type="hidden" name="status" value="{{ st }}">
+            <button type="submit" class="acao">{{ rot }}</button>
+          </form>
+          {% endfor %}
+        </div>
+      </details>
+      {% else %}
+      <p class="vazio">Nenhum assunto ainda.</p>
+      {% endfor %}
+      <details class="adicionar">
+        <summary>Novo assunto</summary>
+        {% with kind="other", voltar="/area/" ~ area.slug %}{% include "partials/form_resource.html" %}{% endwith %}
+      </details>
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-sessoes">
+    {{ marca("記録", "sessões da semana") }}
+    <div class="coluna-corpo">
+      <h2 id="t-sessoes" class="sr-only">Sessões da semana</h2>
+      {% for s in week_sessions %}
+      {%- set r = resource_by_id.get(s.resource_id) -%}
+      <div class="linha">
+        <span class="linha-titulo">{{ s.day | semana }}<span class="linha-sub">{{ s.did or (r.title if r else "") }}</span></span>
+        <span class="numero" style="font-size:20px">{{ duracao(s.minutes) }}</span>
+      </div>
+      {% else %}
+      <p class="vazio">Nenhuma sessão desde segunda.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-proximas">
+    {{ marca("次", "a seguir") }}
+    <div class="coluna-corpo">
+      <h2 id="t-proximas" class="sr-only">A seguir</h2>
+      <div id="lista-area">
+        {% for task in tasks %}{% set variant = "lista" %}{% include "partials/task_row.html" %}{% endfor %}
+      </div>
+      {% if not tasks %}<p class="vazio">Sem próximas sessões planejadas.</p>{% endif %}
+
+      {% if materials %}
+      <div class="linha-sub subgrupo">Materiais</div>
+      {% for r in materials %}
+      <a class="linha" href="{{ r.url }}" target="_blank" rel="noopener" style="color:var(--texto)">
+        <span class="linha-titulo">{{ r.title }}<span class="linha-sub">{{ r.author or r.url.split("/")[2] }}</span></span>
+      </a>
+      {% endfor %}
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+{% include "partials/area_capture.html" %}
+{% include "partials/encerrar_area.html" %}
+{% endblock %}

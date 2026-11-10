@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lua crescente com um traço de ensō: a marca do Yoru. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#E6E6E6"
+        android:pathData="M54,30 a24,24 0 1,0 0,48 a19,24 0 1,1 0,-48 z" />
+    <path android:strokeColor="#8A8A8A" android:strokeWidth="2.2" android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:pathData="M78,42 A30,30 0 1,1 60,24" />
+</vector>

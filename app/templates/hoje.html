@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca, deco, torii, progresso %}
+
+{% block titulo %}Hoje{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">{{ hoje | data_longa }}</div>
+      <h1 class="titulo">{{ saudacao() }}.</h1>
+    </div>
+
+    {% if start_items %}
+    {% include "partials/comecar_dia.html" %}
+    {% else %}
+    <p class="paragrafo">{{ summary }}
+      {%- if closed_today %} Encerrado hoje: {{ closed_today | map(attribute="area.name") | join(", ") }}.
+      {%- else %} Ao terminar cada área, encerre-a na página dela: o próximo passo aparece aqui amanhã.{% endif %}</p>
+    {% endif %}
+  </div>
+
+  {% include "partials/enso_hoje.html" %}
+</section>
+{% endblock %}
+
+{% block agua %}
+<div class="reflexo" aria-hidden="true"></div>
+
+<div class="colunas colunas-2">
+  <section class="coluna" aria-labelledby="t-tarefas">
+    {{ marca("務め", "tarefas", "#captura", "adicionar tarefa") }}
+    <div class="coluna-corpo" id="lista-hoje">
+      <h2 id="t-tarefas" class="sr-only">Tarefas de hoje</h2>
+      {% for task in open_tasks %}{% set variant = "hoje" %}{% include "partials/task_row.html" %}{% endfor %}
+      {% for task in done_tasks %}{% set variant = "hoje" %}{% include "partials/task_row.html" %}{% endfor %}
+      {% if not open_tasks and not done_tasks %}
+      <p class="vazio">Nada para hoje. Marque “para hoje” em algo da caixa ou de uma área.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-prazos">
+    {{ marca("期限", "prazos", "/area/faculdade#novo-prazo", "adicionar prazo") }}
+    <div class="coluna-corpo">
+      <h2 id="t-prazos" class="sr-only">Prazos</h2>
+      {% for d in deadlines %}
+      {%- set area = areas_by_id.get(d.area_id) -%}
+      <div class="linha">
+        <span class="linha-titulo">{{ d.title }}<span class="linha-sub">{{ d.kind }}{% if area %}, {{ area.name | lower }}{% endif %}</span></span>
+        <span class="numero{% if not loop.first %} calmo{% endif %}">
+          {% if d.days == 0 %}hoje{% elif d.days == 1 %}1<small> dia</small>{% else %}{{ d.days }}<small> dias</small>{% endif %}
+        </span>
+      </div>
+      {% else %}
+      <p class="vazio">Nenhum prazo nas próximas semanas.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-habitos">
+    {{ marca("習慣", "hábitos de hoje", "/habitos#novo-habito", "adicionar hábito") }}
+    <div class="coluna-corpo solto" style="gap:12px">
+      <h2 id="t-habitos" class="sr-only">Hábitos de hoje</h2>
+      {% include "partials/habitos_hoje.html" %}
+      <a class="acao" href="/foco">{{ focus_minutes }} min de foco hoje ›</a>
+    </div>
+  </section>
+
+  {% if book %}
+  <section class="coluna" aria-labelledby="t-leitura">
+    {{ marca("読書", "leitura", "/area/leituras#novo-livro", "adicionar livro") }}
+    <div class="coluna-corpo solto" style="gap:14px">
+      <h2 id="t-leitura" class="sr-only">Leitura atual</h2>
+      <div><div class="titulo-item">{{ book.title }}</div><div class="linha-sub">{{ book.author or "" }}</div></div>
+      {% if book.progress_total %}
+      {{ progresso(book.progress_current / book.progress_total) }}
+      <div class="linha-sub">{{ book.progress_current | int }} de {{ book.progress_total | int }} {{ book.progress_unit or "páginas" }}</div>
+      {% endif %}
+    </div>
+  </section>
+  {% else %}
+  <section class="coluna" aria-labelledby="t-caixa">
+    {{ marca("未整理", "por organizar", "#captura", "anotar algo") }}
+    <h2 id="t-caixa" class="sr-only">Caixa de entrada</h2>
+    {% include "partials/inbox_preview.html" %}
+  </section>
+  {% endif %}
+</div>
+
+<div class="rodape-agua">
+  <form class="captura" data-post="/hx/capturar" data-alvo="#aviso-captura" data-troca="inner" data-avisos="#aviso-captura" data-limpar>
+    {{ deco("記", "anotar") }}
+    <label for="captura" class="sr-only">Anotar algo na caixa de entrada</label>
+    <input id="captura" name="title" type="text" placeholder="Anotar algo antes que escape" autocomplete="off" required>
+    <input type="hidden" name="variant" value="aviso">
+    <span id="aviso-captura" aria-live="polite"></span>
+  </form>
+  <a class="link-sublinhado calmo" href="/encerrar" title="Anote onde parou e o próximo passo: ele aparece aqui amanhã">Encerrar o dia</a>
+</div>
+
+<details class="como-usar unica" id="como-usar">
+  <summary>{{ deco("道", "caminho") }} Como usar o Yoru</summary>
+  <ol class="passos">
+    <li>
+      <span class="passo-kanji" aria-hidden="true">記</span>
+      <div class="passo-texto">
+        <strong>Anote</strong>
+        <span>Escreva no campo abaixo ou na <a href="/caixa">Caixa</a>.</span>
+        <span>Não precisa organizar agora.</span>
+      </div>
+    </li>
+    <li>
+      <span class="passo-kanji" aria-hidden="true">域</span>
+      <div class="passo-texto">
+        <strong>Organize</strong>
+        <span>Na Caixa, mande cada item para uma área.</span>
+        <span>Marque “para hoje” o que vai fazer.</span>
+      </div>
+    </li>
+    <li>
+      <span class="passo-kanji" aria-hidden="true">集</span>
+      <div class="passo-texto">
+        <strong>Faça</strong>
+        <span>Toque na bolinha para concluir uma tarefa.</span>
+        <span>Use o <a href="/foco">Foco</a> para trabalhar em blocos de tempo.</span>
+        <span>Marque os <a href="/habitos">Hábitos</a> do dia.</span>
+      </div>
+    </li>
+    <li>
+      <span class="passo-kanji" aria-hidden="true">志</span>
+      <div class="passo-texto">
+        <strong>Mire</strong>
+        <span>Em <a href="/metas">Metas</a>, defina objetivos e o que dá para medir.</span>
+        <span>Acompanhe a evolução em <a href="/progresso">Progresso</a>.</span>
+      </div>
+    </li>
+    <li>
+      <span class="passo-kanji" aria-hidden="true">日</span>
+      <div class="passo-texto">
+        <strong>Encerre</strong>
+        <span>No fim do dia, <a href="/encerrar">encerre o dia</a>.</span>
+        <span>O próximo passo aparece aqui amanhã.</span>
+      </div>
+    </li>
+  </ol>
+</details>
+{% endblock %}

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Yoru{% endblock %} · Yoru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500&family=Noto+Sans+JP:wght@300;400&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', path='yoru.css') }}">
+  <script src="{{ url_for('static', path='yoru.js') }}" defer></script>
+  <script src="{{ url_for('static', path='petalas.js') }}" defer></script>
+</head>
+<body>
+  <div class="ceu">
+    <canvas class="petalas" aria-hidden="true"></canvas>
+    <header class="topo">
+      <a class="marca" href="/">
+        <span class="marca-kanji deco" data-legenda="yoru: noite" tabindex="0">夜</span>
+        <span class="marca-nome">Yoru</span>
+      </a>
+      <nav class="nav" aria-label="Seções">
+        <a href="/" {% if page == "hoje" %}aria-current="page"{% endif %}>Hoje</a>
+        <a href="/caixa" {% if page == "caixa" %}aria-current="page"{% endif %}>Caixa{% include "partials/inbox_counter.html" %}</a>
+        {%- set area_atual = areas | selectattr("slug", "equalto", (page or "")[5:]) | first if (page or "").startswith("area:") else none %}
+        <details class="nav-grupo{% if area_atual %} atual{% endif %}">
+          <summary>{{ area_atual.name if area_atual else "Áreas" }}</summary>
+          <div class="nav-menu">
+            {% for a in areas %}
+            <a href="/area/{{ a.slug }}" {% if area_atual and area_atual.slug == a.slug %}aria-current="page"{% endif %}>{{ a.name }}</a>
+            {% endfor %}
+          </div>
+        </details>
+        <a href="/metas" {% if page == "metas" %}aria-current="page"{% endif %}>Metas</a>
+        <a href="/foco" {% if page == "foco" %}aria-current="page"{% endif %}>Foco</a>
+        <a href="/habitos" {% if page == "habitos" %}aria-current="page"{% endif %}>Hábitos</a>
+        <a href="/progresso" {% if page == "progresso" %}aria-current="page"{% endif %}>Progresso</a>
+        <a href="/diario" {% if page in ("diario", "encerrar") %}aria-current="page"{% endif %}>Diário</a>
+        <a href="/ias" {% if page == "ias" %}aria-current="page"{% endif %}>IAs</a>
+        <a href="/sincronia" {% if page == "sincronia" %}aria-current="page"{% endif %}>Sincronia</a>
+      </nav>
+    </header>
+    {% block ceu %}{% endblock %}
+  </div>
+  <div class="horizonte" role="presentation"></div>
+  <main class="agua">
+    {% block agua %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{% from "macros.html" import enso as desenhar_enso %}
+<div class="enso" data-atualizar="/hx/enso" data-quando="tarefas">
+  <div class="enso-circulo">
+    {{ desenhar_enso(enso.fraction, 200) }}
+    <div class="enso-centro">
+      {% if enso.total %}
+      <span class="enso-numero">{{ enso.done }}<small> / {{ enso.total }}</small></span>
+      <span class="enso-rotulo">Tarefas do dia</span>
+      {% else %}
+      <span class="enso-rotulo">Dia em aberto</span>
+      {% endif %}
+    </div>
+  </div>
+  {% if enso.total and enso.done == enso.total %}<div class="enso-nota">O círculo se fechou. Bom trabalho hoje.</div>{% endif %}
+</div>

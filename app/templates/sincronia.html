@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca %}
+
+{% block titulo %}Sincronia{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">Sincronia</div>
+      <h1 class="titulo">
+        {% if invite and invite.status == "aguardando" %}Aguardando o celular
+        {% elif ultima_sync %}Última sincronia {{ ultima_sync.at | relativo }}
+        {% else %}Nenhum aparelho conectado{% endif %}
+      </h1>
+    </div>
+    <p class="paragrafo">O celular guarda uma cópia e troca as mudanças com este computador quando o servidor está ligado.</p>
+    <details class="ajuda">
+      <summary>Conflitos e segurança</summary>
+      <p>Em conflito, vale a edição mais recente. Cada aparelho tem o próprio token; nada sai deste computador sem ele.</p>
+    </details>
+  </div>
+
+  <div class="cena-figura">
+  {% if invite %}
+    {% include "partials/convite.html" %}
+  {% else %}
+  <details class="adicionar" style="margin:0" {% if not devices %}open{% endif %}>
+    <summary>Cadastrar aparelho</summary>
+    {% if not address %}
+    <p class="vazio">Não encontrei o endereço deste computador na rede. Conecte ao Wi‑Fi e recarregue.</p>
+    {% else %}
+    <form class="form-grade" method="post" action="/sincronia/aparelhos">
+      <div class="campo"><label for="ap-nome">Nome do aparelho</label><input id="ap-nome" name="name" required placeholder="Meu celular"></div>
+      <div class="campo"><label for="ap-senha">Senha do aparelho</label><input id="ap-senha" name="password" type="password" required minlength="4" autocomplete="off" placeholder="Você vai digitá-la no celular"></div>
+      <div class="acoes-form"><button type="submit" class="link-sublinhado">Enviar solicitação</button></div>
+    </form>
+    <details class="ajuda" style="margin-top:14px">
+      <summary>Requisitos e problemas de conexão</summary>
+      <p>O servidor precisa estar ligado com <code>--host 0.0.0.0</code> e o celular no mesmo Wi‑Fi. A solicitação é anunciada na rede por 3 minutos; o app aberto a recebe e pede a senha.</p>
+      <p>Se o celular receber o convite mas não conseguir conectar, o firewall do Windows está barrando a porta. No PowerShell como administrador, uma vez: <code style="user-select:all">New-NetFirewallRule -DisplayName "Yoru {{ port }}" -Direction Inbound -Protocol TCP -LocalPort {{ port }} -Action Allow -Profile Private,Public</code>. Teste no navegador do celular: <code>{{ address }}/api/health</code>.</p>
+    </details>
+    {% endif %}
+  </details>
+  {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block agua %}
+<div class="colunas colunas-2">
+  <section class="coluna" aria-labelledby="t-aparelhos">
+    {{ marca("端末", "aparelhos") }}
+    <div class="coluna-corpo" style="gap:14px">
+      <h2 id="t-aparelhos" class="sr-only">Aparelhos conectados</h2>
+      {% for d in devices %}
+      <div class="linha item">
+        <span class="linha-titulo">{{ d.name }}
+          <span class="linha-sub">{% if d.last_seen_at %}visto {{ d.last_seen_at | relativo }}{% else %}ainda não sincronizou{% endif %}, pareado {{ d.created_at | relativo }}</span>
+        </span>
+        <span class="acoes">
+          <form class="mini-form" method="post" action="/sincronia/aparelhos/{{ d.id }}/revogar">
+            <button type="submit" class="acao">revogar</button>
+          </form>
+        </span>
+      </div>
+      {% else %}
+      <p class="vazio">Nenhum aparelho pareado. Use “Cadastrar aparelho” acima.</p>
+      {% endfor %}
+
+      <details class="adicionar" style="margin:0">
+        <summary>Conexão manual</summary>
+        <p class="linha-sub" style="margin:6px 0 10px">Se o anúncio na rede não chegar ao celular, digite no app o endereço e o token abaixo.</p>
+        <div class="campo"><label>Comando para ligar o servidor</label>
+          <p style="margin:4px 0 0;font-size:14px;word-break:break-word;user-select:all">uvicorn app.main:app --host 0.0.0.0 --port {{ port }}</p></div>
+        {% if address %}<div class="campo" style="margin-top:10px"><label for="end">Endereço</label><input id="end" readonly value="{{ address }}" onfocus="this.select()"></div>{% endif %}
+        <div class="campo" style="margin-top:10px"><label for="tok">Token geral</label><input id="tok" readonly value="{{ token }}" onfocus="this.select()"></div>
+        <form method="post" action="/sincronia/novo-token" style="margin-top:8px">
+          <button type="submit" class="acao">gerar outro token geral</button>
+        </form>
+      </details>
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-hist">
+    {{ marca("履歴", "histórico") }}
+    <div class="coluna-corpo">
+      <h2 id="t-hist" class="sr-only">Últimas sincronias</h2>
+      {% for s in syncs %}
+      <div class="linha item">
+        <span class="linha-titulo">{{ s.device }}
+          <span class="linha-sub">
+            {{ s.received }} {{ "recebido" if s.received == 1 else "recebidos" }}, {{ s.sent }} {{ "enviado" if s.sent == 1 else "enviados" }}{% if s.rejected %}, {{ s.rejected }} {{ "rejeitado" if s.rejected == 1 else "rejeitados" }}{% endif %}
+          </span>
+        </span>
+        <span class="linha-meta">{{ s.at | relativo }}</span>
+      </div>
+      {% else %}
+      <p class="vazio">Quando o app sincronizar pela primeira vez, ela aparece aqui.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

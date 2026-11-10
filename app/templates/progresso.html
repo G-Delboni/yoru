@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca, barras %}
+
+{% block titulo %}Progresso{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">Progresso</div>
+      <h1 class="titulo">{{ track.title }}</h1>
+    </div>
+    <nav class="abas" aria-label="Período">
+      {% for key, label in periods.items() %}
+      <a href="/progresso?periodo={{ key }}" {% if key == track.period %}aria-current="page"{% endif %}>{{ label }}</a>
+      {% endfor %}
+    </nav>
+    <div class="resumo">
+      {% for s in track.series %}
+      <div class="resumo-item">
+        <span class="numero">{{ s.total | num }}<small> {{ s.unit }}</small></span>
+        <span class="linha-sub">{{ s.label | lower }}</span>
+      </div>
+      {% endfor %}
+      <div class="resumo-item">
+        <span class="numero">{% if track.habits_pct is none %}–{% else %}{{ track.habits_pct }}<small>%</small>{% endif %}</span>
+        <span class="linha-sub">hábitos</span>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block agua %}
+<div class="colunas colunas-2">
+  {% for s in track.series %}
+  {% if not (track.period == "hoje" and s.max == 0 and s.total > 0) %}
+  <section class="coluna coluna-grafico" aria-labelledby="g-{{ loop.index }}">
+    {{ marca(["務", "集", "学", "読"][loop.index0], s.label | lower) }}
+    <div class="coluna-corpo solto" style="gap:8px">
+      <h2 id="g-{{ loop.index }}" class="sr-only">{{ s.label }}</h2>
+      {% if s.total == 0 %}
+      <p class="vazio">Nada registrado {{ track.title | lower }}.</p>
+      {% else %}
+      {{ barras(s.values, track.labels, s.unit) }}
+      <div class="linha-sub">máximo {{ s.max | num }} {{ s.unit }}{% if track.period != "hoje" %}, total {{ s.total | num }}{% endif %}</div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+  {% endfor %}
+</div>
+
+{% if track.tasks_done_list %}
+<section class="coluna unica" style="margin-top:28px" aria-labelledby="t-feitas">
+  {{ marca("済", "feitas") }}
+  <div class="coluna-corpo">
+    <h2 id="t-feitas" class="sr-only">Tarefas feitas</h2>
+    {% for t in track.tasks_done_list %}
+    {%- set area = areas_by_id.get(t.area_id) -%}
+    <div class="linha"><span class="linha-titulo" style="color:var(--texto-2)">{{ t.title }}<span class="linha-sub">{{ area.name | lower if area else "sem área" }}</span></span><span class="linha-meta">{{ t.completed_at | dia_local | data_curta }}</span></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

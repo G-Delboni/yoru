@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca, deco %}
+
+{% block titulo %}{{ area.name }}{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">{{ area.name }}{% if average is not none %}, média {{ average | round(1) | num }}{% endif %}</div>
+      {% if next_exam %}
+      <h1 class="titulo">
+        {{ next_exam.title }}<br>
+        {% if next_exam_days == 0 %}é hoje{% elif next_exam_days == 1 %}é amanhã{% else %}em {{ next_exam_days }} dias{% endif %}
+      </h1>
+      {% else %}
+      <h1 class="titulo">Nenhuma prova<br>no horizonte</h1>
+      {% endif %}
+    </div>
+    {% if next_exam %}
+    {%- set disc = subject_by_id.get(next_exam.resource_id) -%}
+    <p class="paragrafo">
+      {{ next_exam.starts_at | semana | capitalize }}, {{ next_exam.starts_at.date() | data_curta }}{% if next_exam.starts_at | hora %}, às {{ next_exam.starts_at | hora }}{% endif %}.
+      {% if disc %}{{ disc.title }}.{% endif %}
+      {% if next_exam.notes %}{{ next_exam.notes }}{% endif %}
+    </p>
+    {% else %}
+    <p class="paragrafo">Cadastre provas e entregas em “prazos”, abaixo.</p>
+    {% endif %}
+  </div>
+
+  {% if moons %}
+  <div class="cena-figura" aria-label="Dias até {{ next_exam.title }}">
+    <div class="luas-dias"><span style="width:auto">hoje</span><span style="width:auto">{{ event_kinds[next_exam.kind] }}</span></div>
+    <div class="luas">
+      {% for m in moons %}
+      <span class="lua {{ m.state }} deco" data-legenda="{{ m.legend }}" tabindex="0" aria-label="{{ m.legend }}"></span>
+      {% endfor %}
+    </div>
+    <div class="luas-dias">{% for m in moons %}<span>{{ m.day.day }}</span>{% endfor %}</div>
+    <div class="linha-sub" title="Passe o mouse sobre uma lua para ver o dia">lua cheia: hoje · círculo claro: {{ event_kinds[next_exam.kind] }}</div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block agua %}
+<div class="colunas">
+  <section class="coluna" aria-labelledby="t-prazos">
+    {{ marca("期限", "prazos") }}
+    <div class="coluna-corpo">
+      <h2 id="t-prazos" class="sr-only">Prazos</h2>
+      {% for e in events %}
+      {%- set disc = subject_by_id.get(e.resource_id) -%}
+      {%- set n = e.starts_at | dias -%}
+      <div class="linha item">
+        <span class="linha-titulo">{{ e.title }}
+          <span class="linha-sub">{{ event_kinds[e.kind] }}{% if disc %}, {{ disc.title }}{% endif %}, {{ e.starts_at | semana }} {{ e.starts_at.day }}{% if e.starts_at | hora %} às {{ e.starts_at | hora }}{% endif %}</span>
+        </span>
+        <span class="numero{% if not loop.first %} calmo{% endif %}">{% if n == 0 %}hoje{% else %}{{ n }}<small> {{ "dia" if n == 1 else "dias" }}</small>{% endif %}</span>
+        <span class="acoes">
+          <form class="mini-form" method="post" action="/eventos/{{ e.id }}/excluir">
+            <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+            <button type="submit" class="acao">excluir</button>
+          </form>
+        </span>
+      </div>
+      {% else %}
+      <p class="vazio">Nenhuma prova ou entrega marcada.</p>
+      {% endfor %}
+
+      <details id="novo-prazo" class="adicionar">
+        <summary>Nova prova ou entrega</summary>
+        <form class="form-grade" method="post" action="/eventos">
+          <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+          <input type="hidden" name="area_id" value="{{ area.id }}">
+          <div class="campo largo"><label for="ev-titulo">Título</label><input id="ev-titulo" name="title" required placeholder="Prova de Cálculo II"></div>
+          <div class="campo"><label for="ev-tipo">Tipo</label>
+            <select id="ev-tipo" name="kind">
+              <option value="exam">Prova</option><option value="deadline">Entrega</option>
+              <option value="meeting">Reunião</option><option value="other">Outro</option>
+            </select></div>
+          <div class="campo"><label for="ev-disc">Disciplina</label>
+            <select id="ev-disc" name="resource_id"><option value="">Nenhuma</option>
+              {% for s in subjects %}<option value="{{ s.id }}">{{ s.title }}</option>{% endfor %}
+            </select></div>
+          <div class="campo"><label for="ev-dia">Dia</label><input id="ev-dia" name="on" type="date" required></div>
+          <div class="campo"><label for="ev-hora">Hora (opcional)</label><input id="ev-hora" name="at" type="time"></div>
+          <div class="campo largo"><label for="ev-notas">Conteúdo ou observação</label><input id="ev-notas" name="notes" placeholder="Integrais impróprias e séries"></div>
+          <div class="acoes-form"><button type="submit" class="link-sublinhado">Adicionar</button></div>
+        </form>
+      </details>
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-disc">
+    {{ marca("科目", "disciplinas") }}
+    <div class="coluna-corpo">
+      <h2 id="t-disc" class="sr-only">Disciplinas</h2>
+      {% for s in subjects %}
+      <div class="linha item">
+        <span class="linha-titulo">{{ s.title }}
+          <span class="linha-sub">{{ [s.schedule, s.author] | select | join(", ") }}</span>
+        </span>
+        <span class="numero" style="font-size:20px">{% if s.grade is not none %}{{ s.grade | num }}{% else %}<small>sem nota</small>{% endif %}</span>
+        <span class="acoes">
+          <form class="form-linha" method="post" action="/recursos/{{ s.id }}/nota">
+            <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+            <label for="nota-{{ s.id }}" class="linha-sub">média</label>
+            <input id="nota-{{ s.id }}" name="grade" inputmode="decimal" value="{{ s.grade | num }}">
+            <button type="submit" class="acao">salvar</button>
+          </form>
+          <form class="mini-form" method="post" action="/recursos/{{ s.id }}/estado">
+            <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+            <input type="hidden" name="status" value="finished">
+            <button type="submit" class="acao">concluída</button>
+          </form>
+        </span>
+      </div>
+      {% else %}
+      <p class="vazio">Nenhuma disciplina cadastrada.</p>
+      {% endfor %}
+
+      <details class="adicionar">
+        <summary>Nova disciplina</summary>
+        <form class="form-grade" method="post" action="/recursos">
+          <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+          <input type="hidden" name="area_id" value="{{ area.id }}">
+          <input type="hidden" name="kind" value="subject">
+          <div class="campo largo"><label for="d-nome">Nome</label><input id="d-nome" name="title" required placeholder="Cálculo II"></div>
+          <div class="campo"><label for="d-hor">Horário</label><input id="d-hor" name="schedule" placeholder="ter e qui, 19:00"></div>
+          <div class="campo"><label for="d-prof">Professor</label><input id="d-prof" name="author"></div>
+          <div class="acoes-form"><button type="submit" class="link-sublinhado">Adicionar</button></div>
+        </form>
+      </details>
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-tarefas">
+    {{ marca("務め", "tarefas") }}
+    <div class="coluna-corpo">
+      <h2 id="t-tarefas" class="sr-only">Tarefas da faculdade</h2>
+      <div id="lista-area">
+        {% for task in tasks %}{% set variant = "lista" %}{% include "partials/task_row.html" %}{% endfor %}
+      </div>
+      {% if not tasks %}<p class="vazio">Sem tarefas abertas.</p>{% endif %}
+    </div>
+  </section>
+</div>
+
+{% include "partials/area_capture.html" %}
+{% include "partials/encerrar_area.html" %}
+{% endblock %}

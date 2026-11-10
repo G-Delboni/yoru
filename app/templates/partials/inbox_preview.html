@@ -1,0 +1,12 @@
+<div class="coluna-corpo" data-atualizar="/hx/caixa-previa" data-quando="tarefas">
+  {% for t in inbox_preview %}
+  <div class="linha"><span class="linha-titulo">{{ t.title }}</span><span class="linha-meta">{{ t.created_at | dia_local | data_curta }}</span></div>
+  {% else %}
+  <p class="vazio">Nada esperando. O que você anotar no campo abaixo vem para cá.</p>
+  {% endfor %}
+  {% if inbox_count > inbox_preview | length %}
+  <div class="linha"><a href="/caixa" class="linha-meta">e mais {{ inbox_count - inbox_preview | length }} na caixa de entrada</a></div>
+  {% elif inbox_preview %}
+  <div class="linha"><a href="/caixa" class="linha-meta">Organizar</a></div>
+  {% endif %}
+</div>

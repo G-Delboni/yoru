@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca, progresso %}
+
+{% block titulo %}Objetivos e metas{% endblock %}
+
+{% macro acao_objetivo(o, acao, rotulo) -%}
+<form class="mini-form" method="post" action="/objetivos/{{ o.id }}/estado">
+  <input type="hidden" name="acao" value="{{ acao }}"><button type="submit" class="acao">{{ rotulo }}</button>
+</form>
+{%- endmacro %}
+
+{% macro linha_meta(row) -%}
+{%- set g = row.goal -%}
+<div class="linha item" style="flex-wrap:wrap">
+  <span class="linha-titulo" {% if g.is_done %}style="color:var(--apagado);text-decoration:line-through"{% endif %}>
+    {{ g.title }}
+    <span class="linha-sub" style="text-decoration:none">
+      {%- if g.due_date %}até {{ g.due_date | data_curta }}{% endif -%}
+      {%- if row.open_tasks %}{% if g.due_date %}, {% endif %}{{ row.open_tasks }} {{ "tarefa aberta" if row.open_tasks == 1 else "tarefas abertas" }}{% endif -%}
+      {%- if row.auto %}{% if g.due_date or row.open_tasks %}, {% endif %}{{ row.auto }}{% endif -%}
+    </span>
+  </span>
+  {% if g.target_value %}
+  <span class="numero" style="font-size:18px">{{ row.value | num }}<small> de {{ g.target_value | num }} {{ g.unit or "" }}</small></span>
+  {% elif g.is_done %}<span class="linha-meta">feita</span>{% endif %}
+  <span class="acoes">
+    {% if g.target_value and not row.auto and not g.is_done %}
+    <form class="form-linha" method="post" action="/metas/{{ g.id }}/valor">
+      <label for="v-{{ g.id }}" class="linha-sub">valor atual</label>
+      <input id="v-{{ g.id }}" name="value" inputmode="decimal" value="{{ g.current_value | num }}">
+      <button type="submit" class="acao">salvar</button>
+    </form>
+    {% endif %}
+    {% for acao, rot in ([("reabrir", "reabrir")] if g.is_done else [("concluir", "feita")]) + [("excluir", "excluir")] %}
+    <form class="mini-form" method="post" action="/metas/{{ g.id }}/estado">
+      <input type="hidden" name="acao" value="{{ acao }}"><button type="submit" class="acao">{{ rot }}</button>
+    </form>
+    {% endfor %}
+  </span>
+</div>
+{%- endmacro %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">Objetivos e metas</div>
+      <h1 class="titulo">
+        {% if active | length == 0 %}Nenhum objetivo aberto
+        {% elif active | length == 1 %}Um objetivo aberto
+        {% else %}{{ active | length }} objetivos abertos{% endif %}
+      </h1>
+    </div>
+    <p class="paragrafo" title="Cada objetivo pertence a uma área e aparece também na página dela">Objetivo é o destino; meta é o que dá para medir; tarefa é o passo de hoje.</p>
+  </div>
+
+  <details class="adicionar cena-figura" style="margin:0" {% if not active %}open{% endif %}>
+    <summary>Novo objetivo</summary>
+    <form class="form-grade" method="post" action="/objetivos">
+      <div class="campo largo"><label for="o-titulo">Objetivo</label><input id="o-titulo" name="title" required placeholder="Fechar o semestre com média acima de 8"></div>
+      <div class="campo"><label for="o-area">Área</label>
+        <select id="o-area" name="area_id">{% for a in areas %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+      <div class="campo"><label for="o-prazo">Prazo (opcional)</label><input id="o-prazo" name="due_date" type="date"></div>
+      <div class="acoes-form"><button type="submit" class="link-sublinhado">Criar objetivo</button></div>
+    </form>
+  </details>
+</section>
+{% endblock %}
+
+{% block agua %}
+{% if active %}
+{#- 1 objetivo: centrado; 2 ou 4: duas colunas; o resto: três -#}
+<div class="colunas{% if active | length == 1 %} unica{% elif active | length in (2, 4) %} colunas-2{% endif %}">
+  {% for card in active %}
+  {%- set o = card.objective -%}
+  {%- set area = areas_by_id.get(o.area_id) -%}
+  <section class="coluna" aria-labelledby="obj-{{ o.id }}">
+    {{ marca("志", "objetivo") }}
+    <div class="coluna-corpo solto" style="gap:14px">
+      <h2 id="obj-{{ o.id }}" style="font-size:22px;line-height:1.4">{{ o.title }}</h2>
+      <div class="linha-sub">{{ area.name | lower if area else "sem área" }}{% if o.due_date %}, até {{ o.due_date | data_curta }}{% endif %}</div>
+      {{ progresso(card.fraction) }}
+      <div>
+        {% for row in card.goals %}{{ linha_meta(row) }}{% endfor %}
+        {% if not card.goals %}<p class="vazio">Sem metas ainda. Uma meta é algo que dá para medir, como “5 módulos” ou “média 8”.</p>{% endif %}
+      </div>
+      <details class="adicionar" style="margin:0">
+        <summary>Nova meta</summary>
+        <form class="form-grade" method="post" action="/metas">
+          <input type="hidden" name="objective_id" value="{{ o.id }}">
+          <input type="hidden" name="area_id" value="{{ o.area_id }}">
+          <div class="campo largo"><label for="m-t-{{ o.id }}">Meta</label><input id="m-t-{{ o.id }}" name="title" required placeholder="Concluir o curso"></div>
+          <div class="campo"><label for="m-v-{{ o.id }}">Alvo (opcional)</label><input id="m-v-{{ o.id }}" name="target_value" inputmode="decimal" placeholder="8"></div>
+          <div class="campo"><label for="m-u-{{ o.id }}">Unidade</label><input id="m-u-{{ o.id }}" name="unit" placeholder="módulos"></div>
+          <div class="campo largo"><label for="m-d-{{ o.id }}">Prazo (opcional)</label><input id="m-d-{{ o.id }}" name="due_date" type="date"></div>
+          <div class="acoes-form"><button type="submit" class="link-sublinhado">Adicionar</button></div>
+        </form>
+      </details>
+      <div class="botoes">
+        {{ acao_objetivo(o, "concluir", "concluído") }}
+        {{ acao_objetivo(o, "pausar", "pausar") }}
+        {{ acao_objetivo(o, "excluir", "excluir") }}
+      </div>
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if loose_goals %}
+<section class="coluna unica" aria-labelledby="t-soltas">
+  {{ marca("目標", "metas avulsas") }}
+  <div class="coluna-corpo">
+    <h2 id="t-soltas" class="sr-only">Metas avulsas</h2>
+    {% for row in loose_goals %}{{ linha_meta(row) }}{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if paused or done %}
+<section class="coluna unica" aria-labelledby="t-pausa" style="margin-top:auto">
+  {{ marca("休", "em pausa e concluídos") }}
+  <div class="coluna-corpo">
+    <h2 id="t-pausa" class="sr-only">Em pausa e concluídos</h2>
+    {% for card in paused %}
+    <div class="linha item">
+      <span class="linha-titulo" style="color:var(--texto-2)">{{ card.objective.title }}<span class="linha-sub">em pausa</span></span>
+      <span class="acoes">{{ acao_objetivo(card.objective, "retomar", "retomar") }}{{ acao_objetivo(card.objective, "excluir", "excluir") }}</span>
+    </div>
+    {% endfor %}
+    {% for card in done %}
+    <div class="linha item">
+      <span class="linha-titulo" style="color:var(--apagado)">{{ card.objective.title }}<span class="linha-sub">concluído</span></span>
+      <span class="acoes">{{ acao_objetivo(card.objective, "retomar", "reabrir") }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

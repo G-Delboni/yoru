@@ -1,0 +1,14 @@
+{% from "macros.html" import deco %}
+<div class="rodape-agua">
+  <form class="captura" data-post="/hx/capturar" data-alvo="#lista-area" data-troca="inicio" data-avisos="#aviso-captura" data-limpar>
+    {{ deco("記", "anotar") }}
+    <label for="captura" class="sr-only">Nova tarefa em {{ area.name }}</label>
+    <input id="captura" name="title" type="text" placeholder="Nova tarefa em {{ area.name | lower }}" autocomplete="off" required>
+    <input type="hidden" name="variant" value="lista">
+    <input type="hidden" name="area_id" value="{{ area.id }}">
+    <label for="prazo" class="linha-sub">prazo</label>
+    <input id="prazo" name="due_date" type="date" style="flex:0 0 auto;color:var(--texto-2)">
+    <label class="checar"><input type="checkbox" name="for_today" value="true"> para hoje</label>
+  </form>
+  <span id="aviso-captura" aria-live="polite"></span>
+</div>

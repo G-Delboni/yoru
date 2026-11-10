@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca %}
+
+{% block titulo %}Hábitos{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">Hábitos</div>
+      <h1 class="titulo">
+        {% if habits_total == 0 %}Nenhum hábito ainda
+        {% elif habits_done_today == habits_total %}Todos feitos hoje
+        {% else %}{{ habits_done_today }} de {{ habits_total }} feitos hoje{% endif %}
+      </h1>
+    </div>
+    <p class="paragrafo" title="Hábitos arquivados somem daqui mas guardam o histórico">Uma lua por dia; a de hoje é a última da fileira.</p>
+  </div>
+
+  <details id="novo-habito" class="adicionar cena-figura" style="margin:0" {% if habits_total == 0 %}open{% endif %}>
+    <summary>Novo hábito</summary>
+    <form class="form-grade" method="post" action="/habitos">
+      <div class="campo largo"><label for="h-nome">Hábito</label><input id="h-nome" name="name" required placeholder="Ler 20 minutos"></div>
+      <div class="campo"><label for="h-kanji">Kanji (opcional)</label><input id="h-kanji" name="kanji" maxlength="2" placeholder="読"></div>
+      <div class="campo"><label for="h-freq">Vezes por semana</label>
+        <select id="h-freq" name="days_per_week">{% for n in [7, 6, 5, 4, 3, 2, 1] %}<option value="{{ n }}">{{ "todo dia" if n == 7 else n ~ "×" }}</option>{% endfor %}</select></div>
+      <div class="campo"><label for="h-area">Área (opcional)</label>
+        <select id="h-area" name="area_id"><option value="">nenhuma</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+      <div class="acoes-form"><button type="submit" class="link-sublinhado">Criar</button></div>
+    </form>
+  </details>
+</section>
+{% endblock %}
+
+{% block agua %}
+<section class="coluna unica" aria-labelledby="t-habitos">
+  {{ marca("習慣", "hábitos") }}
+  <div class="coluna-corpo">
+    <h2 id="t-habitos" class="sr-only">Lista de hábitos</h2>
+    {% for row in habit_rows %}{% set variant = "linha" %}{% include "partials/habito_linha.html" %}{% endfor %}
+    {% if not habit_rows %}<p class="vazio">Comece com um ou dois. Os que mais mudam o dia costumam ser os menores.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

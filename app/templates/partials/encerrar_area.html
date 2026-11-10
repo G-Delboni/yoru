@@ -1,0 +1,36 @@
+{# Encerrar só esta área por hoje. Uma segunda vez no mesmo dia atualiza o resumo. #}
+<section class="coluna" aria-labelledby="t-encerrar-area" id="encerrar-area" style="margin-top:28px">
+  {{ marca("終", "encerrar a área") }}
+  <div class="coluna-corpo" style="max-width:720px">
+    <h2 id="t-encerrar-area" class="sr-only">Encerrar {{ area.name }} por hoje</h2>
+    {% if today_log %}
+    <p class="linha-sub" style="margin:0 0 6px">{{ area.name }} já foi encerrada hoje. Você pode ajustar o resumo:</p>
+    {% endif %}
+    <details class="adicionar" style="margin:0" {% if today_log %}{% endif %}>
+      <summary>{% if today_log %}Atualizar o resumo de hoje{% else %}Encerrar {{ area.name | lower }} por hoje{% endif %}</summary>
+      <form class="formulario" method="post" action="/areas/{{ area.id }}/encerrar">
+        <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+        <div class="campo">
+          <label for="ea-did">O que você fez</label>
+          <textarea id="ea-did" name="did" rows="2">{{ today_log.did if today_log and today_log.did else "" }}</textarea>
+        </div>
+        <div class="campo">
+          <label for="ea-stop">Onde parou</label>
+          <textarea id="ea-stop" name="stopped_at" rows="2">{{ today_log.stopped_at if today_log and today_log.stopped_at else "" }}</textarea>
+        </div>
+        <div class="campo campo-serif">
+          <label for="ea-next">Próximo passo</label>
+          <input id="ea-next" name="next_step" type="text" value="{{ today_log.next_step if today_log and today_log.next_step else '' }}" placeholder="Algo concreto para começar sem pensar">
+        </div>
+        <div class="campo" style="max-width:200px">
+          <label for="ea-min">Minutos (opcional)</label>
+          <input id="ea-min" name="minutes" type="number" min="0" step="5" inputmode="numeric" value="{{ today_log.minutes if today_log and today_log.minutes else '' }}">
+        </div>
+        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <button type="submit" class="link-sublinhado">{% if today_log %}Salvar{% else %}Encerrar {{ area.name | lower }}{% endif %}</button>
+          <span class="linha-sub">Só esta área. Amanhã o próximo passo aparece em “Começar o dia”, na tela Hoje.</span>
+        </div>
+      </form>
+    </details>
+  </div>
+</section>

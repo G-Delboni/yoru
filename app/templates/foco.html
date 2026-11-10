@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca %}
+
+{% block titulo %}Foco{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">Foco</div>
+      <h1 class="titulo" id="foco-titulo">Um bloco de cada vez</h1>
+    </div>
+    <p class="paragrafo" id="foco-frase">Escolha o tempo e o que vai fazer. A sessão entra no seu dia e no Progresso.</p>
+
+    <div class="foco-config" id="foco-config">
+      <label>Foco <input type="number" min="1" max="180" id="min-foco" inputmode="numeric"> min</label>
+      <label>Pausa <input type="number" min="1" max="60" id="min-pausa" inputmode="numeric"> min</label>
+      <label>Pausa longa <input type="number" min="1" max="90" id="min-longa" inputmode="numeric"> min</label>
+      <label>a cada <input type="number" min="1" max="12" id="ciclos" inputmode="numeric"> focos</label>
+    </div>
+    <div class="foco-config">
+      <label for="foco-area" class="linha-sub">Área</label>
+      <select id="foco-area"><option value="">sem área</option>{% for a in areas %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select>
+      <label for="foco-tarefa" class="linha-sub">Tarefa</label>
+      <select id="foco-tarefa"><option value="">nenhuma</option>{% for t in focus_tasks %}<option value="{{ t.id }}" data-area="{{ t.area_id or '' }}">{{ t.title }}</option>{% endfor %}</select>
+    </div>
+  </div>
+
+  <div class="enso foco-relogio">
+    <div class="enso-circulo">
+      <svg width="220" height="220" viewBox="0 0 220 220" aria-hidden="true">
+        <circle cx="110" cy="110" r="86" fill="none" stroke="#262626" stroke-width="1"/>
+        <circle id="foco-arco" cx="110" cy="110" r="86" fill="none" stroke="#CFCFCF" stroke-width="7" stroke-linecap="round"
+                stroke-dasharray="540.4" stroke-dashoffset="540.4" transform="rotate(-100 110 110)"/>
+        <circle id="foco-arco-2" cx="110" cy="110" r="89" fill="none" stroke="#CFCFCF" stroke-width="1.2" opacity=".55" stroke-linecap="round"
+                stroke-dasharray="559.2" stroke-dashoffset="559.2" transform="rotate(-96 110 110)"/>
+      </svg>
+      <div class="enso-centro">
+        <span class="enso-numero" id="foco-tempo" style="font-size:44px">25:00</span>
+        <span class="enso-rotulo" id="foco-modo">Foco</span>
+      </div>
+    </div>
+    <div class="foco-botoes">
+      <button type="button" class="link-sublinhado" id="foco-iniciar">Começar</button>
+      <button type="button" class="acao" id="foco-encerrar" hidden>Encerrar</button>
+      <button type="button" class="acao" id="foco-pular" hidden>Pular</button>
+      <button type="button" class="acao" id="foco-resetar" hidden title="Volta para o primeiro foco da sequência">Resetar sequência</button>
+    </div>
+    <div class="enso-nota" id="foco-sequencia">0 de 4 focos até a pausa longa</div>
+    <div class="enso-nota" id="foco-nota">{{ focus_minutes }} min de foco hoje</div>
+  </div>
+</section>
+{% endblock %}
+
+{% block agua %}
+<section class="coluna unica" aria-labelledby="t-sessoes">
+  {{ marca("集中", "sessões de hoje") }}
+  <div class="coluna-corpo solto">
+    <h2 id="t-sessoes" class="sr-only">Sessões de hoje</h2>
+    {% include "partials/foco_lista.html" %}
+    <details class="ajuda" style="margin-top:18px">
+      <summary>Como funciona o ritmo</summary>
+      <p>Foco, pausa curta, foco… e a cada <span id="foco-ciclos-texto">4</span> focos uma pausa longa. Os tempos ficam salvos neste navegador. Se você encerrar antes do fim, o que já passou conta mesmo assim (a partir de 1 minuto).</p>
+      <p>O relógio continua mesmo com a aba em segundo plano; o título da aba mostra o tempo.</p>
+    </details>
+  </div>
+</section>
+<script src="{{ url_for('static', path='foco.js') }}" defer></script>
+{% endblock %}

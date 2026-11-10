@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca %}
+
+{% block titulo %}Encerrar o dia{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">{{ hoje | data_longa }}</div>
+      <h1 class="titulo">Encerrar o dia</h1>
+    </div>
+    <p class="paragrafo">Três linhas para o você de amanhã. O próximo passo aparece no topo da tela Hoje.</p>
+  </div>
+  <div class="enso">
+    <div class="sobretitulo" style="margin:0">Hoje você concluiu</div>
+    <div class="enso-numero">{{ done_tasks | length }}<small> de {{ (done_tasks | length) + (open_tasks | length) }}</small></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block agua %}
+<section class="coluna unica" aria-labelledby="t-registro">
+  {{ marca("日誌", "diário") }}
+  <div class="coluna-corpo solto">
+    <h2 id="t-registro" class="sr-only">Registro do dia</h2>
+    <form class="formulario" method="post" action="/encerrar">
+      <div class="campo">
+        <label for="area_id">Área</label>
+        <select id="area_id" name="area_id" required>
+          {% for a in areas %}
+          <option value="{{ a.id }}" {% if a.id == default_area_id %}selected{% endif %}>{{ a.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="did">O que você fez</label>
+        <textarea id="did" name="did" rows="2" placeholder="Terminei a modelagem das tabelas de sincronização."></textarea>
+      </div>
+      <div class="campo">
+        <label for="stopped_at">Onde parou</label>
+        <textarea id="stopped_at" name="stopped_at" rows="2" placeholder="Faltou testar o conflito quando dois aparelhos editam a mesma tarefa."></textarea>
+      </div>
+      <div class="campo campo-serif">
+        <label for="next_step">Próximo passo</label>
+        <input id="next_step" name="next_step" type="text" placeholder="Escrever o teste de conflito com dois updatedAt iguais" title="Algo concreto o bastante para começar sem pensar">
+      </div>
+      <div class="campo" style="max-width:200px">
+        <label for="minutes">Minutos de foco (opcional)</label>
+        <input id="minutes" name="minutes" type="number" min="0" step="5" inputmode="numeric">
+      </div>
+      {% if open_tasks %}
+      <label class="checar">
+        <input type="checkbox" name="carry_over" value="true" checked>
+        Levar as {{ open_tasks | length }} tarefas abertas de hoje para amanhã
+      </label>
+      {% endif %}
+      <div class="botoes">
+        <button type="submit" class="link-sublinhado">Salvar e encerrar</button>
+        <a href="/" class="linha-sub">Voltar sem salvar</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

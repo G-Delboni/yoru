@@ -1,0 +1,25 @@
+{# Bloco "Começar o dia": último resumo pendente de cada área. #}
+<form class="comecar" method="post" action="/dia/comecar">
+  <div class="comecar-topo"><span class="comecar-kanji" aria-hidden="true">始</span><span class="sobretitulo" style="margin:0">Começar o dia</span></div>
+  {% for s in start_items %}
+  <div class="comecar-item">
+    <label class="comecar-check">
+      <input type="checkbox" name="retomar" value="{{ s.log.id }}" {% if s.log.next_step %}checked{% endif %}>
+      <span class="comecar-area">{{ s.area.name }}<span class="linha-meta">, {{ s.log.day | data_curta }}</span></span>
+    </label>
+    <div class="comecar-texto">
+      {% if s.log.stopped_at %}<p class="linha-sub" style="margin:0">Parou em: {{ s.log.stopped_at }}</p>
+      {% elif s.log.did %}<p class="linha-sub" style="margin:0">Fez: {{ s.log.did }}</p>{% endif %}
+      {% if s.log.next_step %}<div class="portal-passo">{{ s.log.next_step }}</div>{% endif %}
+    </div>
+    <div class="comecar-acoes">
+      <button type="submit" class="acao" formaction="/dia/retomar/{{ s.log.id }}" title="Vira tarefa de hoje, já em andamento">retomar agora</button>
+      <button type="submit" class="acao" formaction="/dia/dispensar/{{ s.log.id }}" formnovalidate>dispensar</button>
+    </div>
+  </div>
+  {% endfor %}
+  <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    <button type="submit" class="link-sublinhado">Começar o dia</button>
+    <span class="linha-sub">Os marcados viram tarefas de hoje; o primeiro já em andamento. Os outros são dispensados.</span>
+  </div>
+</form>

@@ -1,0 +1,12 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+# esquemas gerados pelo Room (exportSchema): úteis para migrações futuras, por isso ficam no git
+!/app/schemas/

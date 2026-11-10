@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Banco local (faça backup copiando data/yoru.db)
+data/*.db
+data/*.db-journal
+
+# Editor / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# pasta temporária de arquivos para apagar
+_to_delete/
+data/sync_token.txt
+data/ia_contas.json
+data/ia_contas.tmp
+
+# Builds para instalar (APK)
+dist/
+data/*.log

@@ -1,0 +1,52 @@
+{#- Uma tarefa. variant: "hoje" | "lista" (página de área) | "caixa" (caixa de entrada) -#}
+{%- set feita = task.status.value == "done" -%}
+{%- set fazendo = task.status.value == "doing" -%}
+{%- set para_hoje = task.scheduled_for and task.scheduled_for <= hoje -%}
+{%- set area = areas_by_id.get(task.area_id) -%}
+<div class="linha tarefa{% if feita %} feita{% endif %}{% if fazendo %} fazendo{% endif %}{% if task.priority.value == 'high' and not feita %} alta{% endif %}" id="tarefa-{{ task.id }}">
+  {% if variant != "caixa" %}
+  <button type="button" class="marcar"
+          data-post="/hx/tarefas/{{ task.id }}/concluir" data-alvo="closest .tarefa" data-campo-variant="{{ variant }}"
+          aria-label="{{ 'Reabrir' if feita else 'Concluir' }}: {{ task.title }}" aria-pressed="{{ 'true' if feita else 'false' }}"></button>
+  {% endif %}
+
+  <span class="linha-titulo">
+    {{ task.title }}
+    {% if variant == "lista" and task.due_date and not feita %}
+    <span class="linha-sub">prazo {{ task.due_date | prazo }}</span>
+    {% elif variant == "caixa" %}
+    <span class="linha-sub">anotado {{ task.created_at | dia_local | data_curta }}{% if para_hoje %}, marcado para hoje{% endif %}</span>
+    {% elif variant == "hoje" and fazendo %}
+    <span class="linha-sub">em andamento</span>
+    {% endif %}
+  </span>
+
+  {% if variant == "hoje" %}
+  <span class="linha-meta">{{ area.name | lower if area else "sem área" }}</span>
+  {% endif %}
+
+  {% if not feita %}
+  <span class="acoes">
+    {% if variant == "caixa" %}
+    <span class="destinos" aria-label="Mover para uma área">
+      {% for a in areas %}
+      <button type="button" class="acao" data-post="/hx/tarefas/{{ task.id }}/area" data-campo-area_id="{{ a.id }}"
+              data-alvo="closest .tarefa" data-troca="apagar">{{ a.name | lower }}</button>
+      {% endfor %}
+    </span>
+    {% endif %}
+    {% if variant != "hoje" %}
+    <button type="button" class="acao" data-post="/hx/tarefas/{{ task.id }}/hoje" data-campo-variant="{{ variant }}"
+            data-alvo="closest .tarefa" aria-pressed="{{ 'true' if para_hoje else 'false' }}">{{ 'tirar de hoje' if para_hoje else 'para hoje' }}</button>
+    {% endif %}
+    {% if variant != "caixa" %}
+    <button type="button" class="acao" data-post="/hx/tarefas/{{ task.id }}/fazendo" data-campo-variant="{{ variant }}"
+            data-alvo="closest .tarefa" aria-pressed="{{ 'true' if fazendo else 'false' }}">{{ 'pausar' if fazendo else 'começar' }}</button>
+    <button type="button" class="acao" data-post="/hx/tarefas/{{ task.id }}/prioridade" data-campo-variant="{{ variant }}"
+            data-alvo="closest .tarefa" aria-pressed="{{ 'true' if task.priority.value == 'high' else 'false' }}">importante</button>
+    {% endif %}
+    <button type="button" class="acao" data-post="/hx/tarefas/{{ task.id }}/excluir"
+            data-alvo="closest .tarefa" data-troca="apagar">excluir</button>
+  </span>
+  {% endif %}
+</div>

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "macros.html" import enso %}
+
+{% block titulo %}IAs{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">IAs</div>
+      <h1 class="titulo">
+        {% if sessao and destaque %}Sessão em {{ sessao.percent | round | int }}%, semana em {{ destaque.percent | round | int }}%
+        {% elif destaque %}Semana em {{ destaque.percent | round | int }}%
+        {% else %}Quanto resta das suas IAs{% endif %}
+      </h1>
+    </div>
+    <p class="paragrafo">
+      {% if sessao and sessao.resets_at %}A sessão do Claude Code renova {{ sessao.resets_in }}{% if destaque and destaque.resets_at %}; a semana renova {{ destaque.resets_when }}{% endif %}.
+      {% else %}Limites da sessão de 5 horas e da semana no Claude Code e no ChatGPT, e o gasto da chave de API da Anthropic, num lugar só.{% endif %}
+    </p>
+    {% if erro %}
+    <p class="aviso aviso-erro" style="animation:none">
+      {%- if erro.startswith("sem-login") %}Não encontrei o login do {{ "Codex" if erro.endswith("codex") else "Claude Code" }} neste computador. Faça login no CLI primeiro ou cole um token.
+      {%- elif erro.startswith("sem-token") %}Cole o token antes de linkar.
+      {%- else %}Não deu para linkar a conta.{% endif -%}
+    </p>
+    {% endif %}
+    <details class="ajuda">
+      <summary>Onde ficam as chaves</summary>
+      <p>Os vínculos ficam em <code>data/ia_contas.json</code>, só neste computador, e esta página só abre aqui. Com “login deste computador”, o Yoru lê o arquivo do CLI a cada consulta e não guarda cópia do token.</p>
+    </details>
+  </div>
+
+  <div class="cena-figura centro">
+    {% if destaque %}
+    <div class="enso">
+      <div class="enso-circulo">
+        {{ enso(destaque.fraction, 200) }}
+        <div class="enso-centro">
+          <span class="enso-numero">{{ destaque.percent | round | int }}<small>%</small></span>
+          <span class="enso-rotulo">da semana</span>
+        </div>
+      </div>
+      <p class="enso-nota">Claude Code{% if destaque.resets_at %}: renova {{ destaque.resets_when }}{% endif %}</p>
+    </div>
+    {% else %}
+    <span class="figura-kanji" aria-hidden="true">知</span>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block agua %}
+<div class="colunas colunas-2">
+  {% for p in ("claude", "codex") %}
+  {% with st = statuses[p], local_ok = local_logins[p] %}{% include "partials/ia_painel.html" %}{% endwith %}
+  {% endfor %}
+</div>
+{% with p = "anthropic", st = statuses["anthropic"], local_ok = false %}{% include "partials/ia_painel.html" %}{% endwith %}
+{% endblock %}

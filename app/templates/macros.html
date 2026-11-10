@@ -1,0 +1,87 @@
+{# Cabeçalho de seção: kanji e legenda na mesma linha.
+   Com `link`, vira um atalho para criar: ao passar o mouse aparece `acao` ("adicionar tarefa"). #}
+{% macro marca(kanji, legenda, link=none, acao=none) -%}
+{% if link %}
+<a class="marca-secao marca-link" href="{{ link }}" title="{{ acao | capitalize }}">
+  <span class="marca-secao-kanji" aria-hidden="true">{{ kanji }}</span>
+  <span class="marca-secao-legenda">{{ legenda }}</span>
+  <span class="marca-secao-acao">+ {{ acao }}</span>
+</a>
+{% else %}
+<div class="marca-secao">
+  <span class="marca-secao-kanji" aria-hidden="true">{{ kanji }}</span>
+  <span class="marca-secao-legenda">{{ legenda }}</span>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{# Kanji decorativo: a legenda só aparece ao passar o mouse ou focar #}
+{% macro deco(kanji, legenda, classe="") -%}
+<span class="deco {{ classe }}" data-legenda="{{ legenda }}" tabindex="0" aria-label="{{ legenda }}">{{ kanji }}</span>
+{%- endmacro %}
+
+{# Ensō: o círculo de pincel se fecha conforme a fração cresce.
+   Três traços levemente defasados imitam as cerdas do pincel. #}
+{% macro enso(fracao, tamanho=200) -%}
+{%- set c = tamanho / 2 -%}
+{%- set r = tamanho * 0.39 -%}
+{%- set f = [fracao, 1.0] | min -%}
+{%- set traco = 7 if tamanho >= 160 else 5 -%}
+<svg width="{{ tamanho }}" height="{{ tamanho }}" viewBox="0 0 {{ tamanho }} {{ tamanho }}" aria-hidden="true">
+  <circle cx="{{ c }}" cy="{{ c }}" r="{{ r }}" fill="none" stroke="#262626" stroke-width="1"/>
+  {% if f > 0 %}
+  {%- for dr, w, op, rot in [(0, traco, 1, -100), (traco * 0.45, 1.2, 0.55, -96), (-traco * 0.6, 0.8, 0.4, -104)] -%}
+  {%- set rr = r + dr -%}
+  {%- set circ = 2 * 3.14159 * rr -%}
+  <circle class="enso-traco" cx="{{ c }}" cy="{{ c }}" r="{{ rr }}" fill="none" stroke="#CFCFCF"
+          stroke-width="{{ w }}" opacity="{{ op }}" stroke-linecap="round"
+          stroke-dasharray="{{ '%.1f' % circ }}" stroke-dashoffset="{{ '%.1f' % (circ * (1 - f * 0.94)) }}"
+          transform="rotate({{ rot }} {{ c }} {{ c }})"/>
+  {%- endfor %}
+  {% endif %}
+</svg>
+{%- endmacro %}
+
+{# Torii em traço: marca o próximo passo #}
+{% macro torii() -%}
+<svg width="28" height="24" viewBox="0 0 28 24" fill="none" stroke="#D9D9D9" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+  <path d="M1 4c6 2 20 2 26 0M4 9h20M7 4v19M21 4v19"/>
+</svg>
+{%- endmacro %}
+
+{# Barra de progresso fina, com a lua na ponta #}
+{% macro progresso(fracao, calmo=false) -%}
+{%- set p = ([[fracao, 0] | max, 1] | min) * 100 -%}
+<div class="progresso" style="position:relative;height:1px;background:#262626">
+  <div class="progresso-traco" style="position:absolute;inset:-4px 0">
+    <div style="position:absolute;left:0;top:4px;height:1px;width:{{ p }}%;background:{{ '#8C8C8C' if calmo else '#CFCFCF' }}"></div>
+    <div style="position:absolute;left:{{ p }}%;top:1px;width:7px;height:7px;margin-left:-3px;border-radius:50%;background:{{ '#8C8C8C' if calmo else '#CFCFCF' }}"></div>
+  </div>
+</div>
+{%- endmacro %}
+
+{# Gráfico de barras em SVG, sem biblioteca. Só cinzas: a barra mais alta é a mais clara. #}
+{% macro barras(valores, rotulos, unidade, altura=130) -%}
+{%- set n = valores | length -%}
+{%- set maximo = (valores | max) if n else 0 -%}
+{%- set largura = 360 -%}
+{%- set passo = largura / n if n else 0 -%}
+<svg class="barras-svg" viewBox="0 0 {{ largura }} {{ altura + 22 }}" role="img"
+     aria-label="{{ unidade }} por período: {{ valores | map('round') | map('int') | join(', ') }}">
+  <line x1="0" y1="{{ altura }}" x2="{{ largura }}" y2="{{ altura }}" stroke="#262626" stroke-width="1"/>
+  {%- for v in valores -%}
+  {%- set h = (v / maximo * (altura - 16)) if maximo else 0 -%}
+  {%- set x = loop.index0 * passo + passo * 0.22 -%}
+  <rect style="--i:{{ loop.index0 }}" x="{{ '%.1f' % x }}" y="{{ '%.1f' % (altura - h) }}" width="{{ '%.1f' % (passo * 0.56) }}" height="{{ '%.1f' % h }}"
+        fill="{{ '#D9D9D9' if v == maximo and v > 0 else ('#6E6E6E' if v > 0 else '#1E1E1E') }}" rx="1">
+    <title>{{ v | num }} {{ unidade }}</title>
+  </rect>
+  {%- if v > 0 and (v == maximo or n <= 7) -%}
+  <text style="--i:{{ loop.index0 }}" x="{{ '%.1f' % (x + passo * 0.28) }}" y="{{ '%.1f' % (altura - h - 4) }}" font-size="11" text-anchor="middle" fill="#8A8A8A" font-family="Shippori Mincho, serif">{{ v | num }}</text>
+  {%- endif -%}
+  {%- endfor -%}
+  {%- for r in rotulos -%}
+  {%- if r %}<text x="{{ '%.1f' % (loop.index0 * passo + passo / 2) }}" y="{{ altura + 16 }}" font-size="11" text-anchor="middle" fill="#8A8A8A">{{ r }}</text>{% endif -%}
+  {%- endfor -%}
+</svg>
+{%- endmacro %}

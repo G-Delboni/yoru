@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca, deco %}
+
+{% block titulo %}Caixa de entrada{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto" style="align-items:center;text-align:center">
+  <h1 class="titulo">O que está na sua cabeça?</h1>
+  <p class="paragrafo">Escreva e solte. Área e data ficam para depois.</p>
+  <form class="captura captura-grande" style="width:100%;max-width:640px"
+        data-post="/hx/capturar" data-alvo="#lista-caixa" data-troca="inicio" data-avisos="#aviso-captura" data-limpar>
+    {{ deco("記", "anotar") }}
+    <label for="captura" class="sr-only">Anotar na caixa de entrada</label>
+    <input id="captura" name="title" type="text" placeholder="Escreva e pressione Enter" autocomplete="off" autofocus required>
+    <input type="hidden" name="variant" value="caixa">
+  </form>
+  <span id="aviso-captura" aria-live="polite"></span>
+  </div>
+</section>
+{% endblock %}
+
+{% block agua %}
+<section class="coluna unica" aria-labelledby="t-caixa">
+  {{ marca("未整理", "por organizar") }}
+  <div class="coluna-corpo" title="Passe o mouse sobre um item e escolha a área para onde ele vai">
+    <h2 id="t-caixa" class="sr-only">Por organizar</h2>
+    <div id="lista-caixa">
+      {% for task in tasks %}{% set variant = "caixa" %}{% include "partials/task_row.html" %}{% endfor %}
+    </div>
+    {% if not tasks %}
+    <p class="vazio" id="caixa-vazia">Caixa vazia. Tudo que estava na sua cabeça já tem lugar.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

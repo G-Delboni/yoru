@@ -1,0 +1,158 @@
+{% from "macros.html" import marca, progresso, barras %}
+{%- set kanji = {"claude": "詠", "codex": "対", "anthropic": "鍵"}[p] -%}
+{%- set cli = {"claude": "Claude Code", "codex": "Codex"}.get(p) -%}
+<section class="coluna ia-painel{% if p == 'anthropic' %} unica{% endif %}" id="ia-{{ p }}" aria-labelledby="t-ia-{{ p }}"
+         data-atualizar="/hx/ias/{{ p }}" data-cada="120000">
+  {{ marca(kanji, st.name | lower) }}
+  <div class="coluna-corpo solto" style="gap:16px">
+    <h2 id="t-ia-{{ p }}" class="sr-only">{{ st.name }}</h2>
+
+    {% if st.linked %}
+    <div class="linha item ia-conta">
+      <span class="linha-titulo">{% if st.plan %}<span class="titulo-item">{{ st.plan }}</span>{% endif %}
+        <span class="linha-sub">{{ st.account }}{% if st.fetched_at %}, consultado {{ st.fetched_at | relativo }}{% endif %}</span>
+      </span>
+      <span class="acoes">
+        <button type="button" class="acao" data-post="/hx/ias/{{ p }}/atualizar" data-alvo="closest .ia-painel">atualizar</button>
+        <form class="mini-form" method="post" action="/ias/{{ p }}/desvincular">
+          <button type="submit" class="acao">desvincular</button>
+        </form>
+      </span>
+    </div>
+
+    {% if st.error %}<p class="vazio ia-erro">{{ st.error }}</p>{% endif %}
+
+    {# Limites: sessão, semana e os de modelo específico #}
+    {% for l in st.limits %}
+    <div class="ia-limite">
+      <div class="ia-limite-topo">
+        <span>{{ l.label }}{% if l.window %} <span class="linha-sub" style="display:inline">· {{ l.window }}</span>{% endif %}</span>
+        <span class="numero{% if l.percent < 60 %} calmo{% endif %}">{{ l.percent | round | int }}<small>%</small></span>
+      </div>
+      {{ progresso(l.fraction, calmo=l.percent < 60) }}
+      <span class="linha-sub">
+        {%- if l.resets_at %}renova {{ l.resets_in }} · {{ l.resets_when }}{% else %}sem uso na janela atual{% endif -%}
+      </span>
+    </div>
+    {% endfor %}
+
+    {% if st.breakdown %}
+    <div class="subgrupo" style="margin-top:4px">
+      <span class="campo-rotulo linha-sub">onde a semana foi usada</span>
+      <div class="ia-partes">
+        {% for nome, pct in st.breakdown %}
+        <span><span class="numero calmo" style="font-size:17px">{{ pct | round | int }}<small>%</small></span> {{ nome | lower }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% else %}
+    {# Ainda sem conta #}
+    <p class="paragrafo">
+      {%- if p == "claude" %}Mostra quanto da sessão de 5 horas e do limite semanal da sua assinatura já foi usado, e quando cada um renova.
+      {%- elif p == "codex" %}Limites do Codex na assinatura do ChatGPT Plus: a janela de 5 horas e a semanal, com o horário de cada reset.
+      {%- else %}Custo por dia, gasto do mês e tokens por modelo da sua organização na API. Precisa de uma Admin API key (sk-ant-admin…), criada em console.anthropic.com → Settings → Admin keys.{% endif -%}
+    </p>
+    <details class="adicionar" style="margin:0">
+      <summary>Linkar conta</summary>
+      {% if cli %}
+      {% if local_ok %}
+      <form method="post" action="/ias/{{ p }}/vincular" style="margin-bottom:18px">
+        <input type="hidden" name="mode" value="local">
+        <button type="submit" class="link-sublinhado">Usar o login do {{ cli }} deste computador</button>
+        <span class="linha-sub" style="margin-top:6px">Encontrei o login do {{ cli }} aqui. O Yoru lê o arquivo dele a cada consulta.</span>
+      </form>
+      {% else %}
+      <p class="linha-sub" style="margin:0 0 14px">Sem login do {{ cli }} neste computador.
+        {% if p == "claude" %}Rode <code>claude</code> e entre com a conta Pro/Max{% else %}Rode <code>codex login</code> e escolha “Sign in with ChatGPT”{% endif %}; depois recarregue a página. Ou cole um token abaixo.</p>
+      {% endif %}
+      {% endif %}
+      <form class="form-grade" method="post" action="/ias/{{ p }}/vincular">
+        <input type="hidden" name="mode" value="token">
+        <div class="campo{% if p != 'codex' %} largo{% endif %}">
+          <label for="tk-{{ p }}">{{ "Admin API key" if p == "anthropic" else "Token de acesso" }}</label>
+          <input id="tk-{{ p }}" name="token" type="password" required autocomplete="off"
+                 placeholder="{{ 'sk-ant-admin…' if p == 'anthropic' else ('sk-ant-oat…' if p == 'claude' else 'eyJ…') }}">
+        </div>
+        {% if p == "codex" %}
+        <div class="campo"><label for="acc-codex">ID da conta (opcional)</label><input id="acc-codex" name="account_id" autocomplete="off" placeholder="ChatGPT-Account-Id"></div>
+        {% endif %}
+        <div class="acoes-form"><button type="submit" class="link-sublinhado">Linkar</button></div>
+      </form>
+      {% if p != "anthropic" %}
+      <details class="ajuda" style="margin-top:14px">
+        <summary>Onde achar o token</summary>
+        {% if p == "claude" %}
+        <p>O jeito simples é o login do Claude Code. Para um token separado, rode <code>claude setup-token</code> e cole o que ele imprimir (começa com <code>sk-ant-oat</code>).</p>
+        {% else %}
+        <p>O jeito simples é o login do Codex CLI. Sem ele: entre em chatgpt.com, abra <code>chatgpt.com/api/auth/session</code> e copie o valor de <code>accessToken</code>. Esse token vale por alguns dias; depois é preciso colar outro.</p>
+        {% endif %}
+      </details>
+      {% endif %}
+    </details>
+    {% endif %}
+
+    {% if st.note %}<p class="linha-sub" style="margin:0">{{ st.note }}</p>{% endif %}
+
+    {# Claude: atividade neste computador, das conversas salvas pelo Claude Code #}
+    {% if p == "claude" and st.totals %}
+    <div class="subgrupo">
+      <span class="campo-rotulo linha-sub">neste computador, últimos 7 dias</span>
+      <div class="resumo" style="margin:8px 0 10px">
+        <div class="resumo-item"><span class="numero">{{ st.totals.sessoes_hoje }}</span><span class="linha-sub">{{ "sessão hoje" if st.totals.sessoes_hoje == 1 else "sessões hoje" }}</span></div>
+        <div class="resumo-item"><span class="numero">{{ st.totals.sessoes_semana }}</span><span class="linha-sub">na semana</span></div>
+        <div class="resumo-item"><span class="numero">{{ st.totals.tokens_semana | compacto }}</span><span class="linha-sub">tokens na semana</span></div>
+      </div>
+      {% if st.totals.tokens_semana %}
+      {{ barras(st.days | map(attribute=1) | list, st.days | map(attribute=0) | map("semana_curta") | list, st.days_unit, altura=100) }}
+      {% else %}
+      <p class="vazio">Nenhuma conversa do Claude Code nos últimos 7 dias.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# API da Anthropic: custo e tokens #}
+    {% if p == "anthropic" and st.linked and st.totals %}
+    <div class="colunas colunas-2 ia-api">
+      <div class="coluna">
+        <div class="resumo" style="margin:0 0 14px">
+          <div class="resumo-item"><span class="numero">{{ st.totals.custo_hoje | dolar }}</span><span class="linha-sub">hoje</span></div>
+          <div class="resumo-item"><span class="numero">{{ st.totals.custo_semana | dolar }}</span><span class="linha-sub">7 dias</span></div>
+          <div class="resumo-item"><span class="numero">{{ st.totals.custo_mes | dolar }}</span><span class="linha-sub">no mês</span></div>
+        </div>
+        {% if st.totals.custo_semana > 0 %}
+        {{ barras(st.days | map(attribute=1) | list, st.days | map(attribute=0) | map("semana_curta") | list, st.days_unit, altura=110) }}
+        {% else %}
+        <p class="vazio">Nenhum gasto nos últimos 7 dias.</p>
+        {% endif %}
+      </div>
+      <div class="coluna">
+        <div class="resumo" style="margin:0 0 6px">
+          <div class="resumo-item"><span class="numero">{{ st.totals.tokens_semana | compacto }}</span><span class="linha-sub">tokens em 7 dias</span></div>
+          <div class="resumo-item"><span class="numero">{% if st.totals.cache_pct is none %}–{% else %}{{ st.totals.cache_pct }}<small>%</small>{% endif %}</span><span class="linha-sub">da entrada lida do cache</span></div>
+        </div>
+        <div class="coluna-corpo">
+          {% set t = st.totals.tokens %}
+          <div class="linha"><span class="linha-titulo">entrada</span><span class="linha-meta">{{ t.entrada | compacto }}</span></div>
+          <div class="linha"><span class="linha-titulo">cache, leitura</span><span class="linha-meta">{{ t.cache_leitura | compacto }}</span></div>
+          <div class="linha"><span class="linha-titulo">cache, escrita</span><span class="linha-meta">{{ t.cache_escrita | compacto }}</span></div>
+          <div class="linha"><span class="linha-titulo">saída</span><span class="linha-meta">{{ t.saida | compacto }}</span></div>
+        </div>
+        {% if st.models %}
+        <span class="campo-rotulo linha-sub" style="margin-top:14px">por modelo, 7 dias</span>
+        <div class="coluna-corpo">
+          {% set topo = st.models[0][1] or 1 %}
+          {% for nome, v in st.models %}
+          <div class="linha ia-modelo">
+            <span class="linha-titulo">{{ nome }}</span>
+            <span class="ia-traco" aria-hidden="true"><i style="width:{{ (v / topo * 100) | round(1) }}%"></i></span>
+            <span class="linha-meta">{{ (v | dolar) if st.totals.modelos_em == "US$" else (v | num ~ " mil") }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>

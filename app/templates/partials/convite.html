@@ -1,0 +1,24 @@
+{% if invite is none %}
+<p class="vazio">Convite não encontrado. O servidor foi reiniciado? Envie a solicitação de novo.</p>
+{% elif invite.status == "aguardando" %}
+<div class="convite" data-atualizar="/hx/convite/{{ invite.id }}" data-cada="2000">
+  <div style="display:flex;align-items:baseline;gap:10px">
+    <span class="enso-numero">{{ invite.seconds_left }}</span>
+    <span class="linha-sub" style="font-size:14px">segundos para aprovar no celular</span>
+  </div>
+  <p class="paragrafo" style="margin:10px 0 0">Anunciando “{{ invite.name }}” na rede. Abra o Yoru no celular, no mesmo Wi‑Fi: vai aparecer “Aprovar sincronização”. Digite lá a senha que você acabou de definir.</p>
+  <form method="post" action="/sincronia/convites/{{ invite.id }}/cancelar" style="margin-top:10px">
+    <button type="submit" class="acao">cancelar</button>
+  </form>
+</div>
+{% elif invite.status == "aprovado" %}
+<div class="convite">
+  <p class="paragrafo" style="margin:0">“{{ invite.device_name }}” conectado. A primeira sincronia já deve estar acontecendo.</p>
+  <a class="acao" href="/sincronia" style="display:inline-block;margin-top:8px">fechar</a>
+</div>
+{% else %}
+<div class="convite">
+  <p class="paragrafo" style="margin:0">Convite {{ invite.status }}{% if invite.error %}: {{ invite.error }}{% endif %}. Cadastre o aparelho de novo para enviar outra solicitação.</p>
+  <a class="acao" href="/sincronia" style="display:inline-block;margin-top:8px">fechar</a>
+</div>
+{% endif %}

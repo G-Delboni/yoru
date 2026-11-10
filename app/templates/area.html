@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% from "macros.html" import marca, deco, torii, progresso %}
+
+{% block titulo %}{{ area.name }}{% endblock %}
+
+{% block ceu %}
+<section class="cena">
+  <div class="cena-texto">
+    <div>
+      <div class="sobretitulo">{{ area.name }}</div>
+      {% if doing %}
+      <h1 class="titulo">{{ doing[0].title }}</h1>
+      <div class="linha-sub" style="margin-top:6px">em andamento</div>
+      {% else %}
+      <h1 class="titulo">{{ area.name }}</h1>
+      {% endif %}
+    </div>
+    {% if log and not (doing and doing[0].title == log.next_step) %}
+    <div class="portal">
+      {{ torii() }}
+      <div class="portal-texto">
+        <div class="portal-rotulo">{% if log.day == hoje %}Próximo passo, anotado hoje{% else %}Retomar daqui, anotado {{ log.day | data_curta }}{% endif %}</div>
+        <div class="portal-passo">{{ log.next_step }}</div>
+      </div>
+      {% if log.resumed_at is none and log.day != hoje %}
+      <form method="post" action="/dia/retomar/{{ log.id }}"><input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+        <button type="submit" class="link-sublinhado" title="Vira tarefa de hoje, já em andamento">Retomar</button></form>
+      {% endif %}
+    </div>
+    {% elif not doing %}
+    <p class="paragrafo">
+      {% if todo %}{{ todo | length }} {{ "tarefa aberta" if todo | length == 1 else "tarefas abertas" }} nesta área.
+      {% else %}Nenhuma tarefa aberta. Anote a primeira no campo abaixo.{% endif %}
+    </p>
+    {% endif %}
+  </div>
+
+  {% if objective %}
+  {%- set o = objective.objective -%}
+  {%- set feitas = objective.goals | selectattr("goal.is_done") | list | length -%}
+  <a href="/metas" class="cena-figura" style="max-width:360px;color:inherit">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
+      <span class="linha-sub">Objetivo da área</span>
+      {% if objective.goals %}<span class="numero">{{ feitas }}<small> de {{ objective.goals | length }} metas</small></span>{% endif %}
+    </div>
+    <div class="titulo-item">{{ o.title }}</div>
+    {{ progresso(objective.fraction) }}
+    <div class="linha-sub">{% if o.due_date %}até {{ o.due_date | data_curta }}{% else %}sem prazo{% endif %}</div>
+  </a>
+  {% elif area.kanji %}
+  <div class="enso" aria-hidden="true"><span class="figura-kanji">{{ area.kanji }}</span></div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block agua %}
+<div class="colunas">
+  <section class="coluna" aria-labelledby="t-andamento">
+    {{ marca("進行", "em andamento") }}
+    <div class="coluna-corpo">
+      <h2 id="t-andamento" class="sr-only">Em andamento</h2>
+      {% for task in doing %}{% set variant = "lista" %}{% include "partials/task_row.html" %}{% endfor %}
+      {% if not doing %}<p class="vazio">Nada em andamento. Use “começar” em uma tarefa.</p>{% endif %}
+      {% if done %}
+      <div class="linha-sub subgrupo">Feitas nos últimos sete dias</div>
+      {% for task in done %}{% set variant = "lista" %}{% include "partials/task_row.html" %}{% endfor %}
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-fazer">
+    {{ marca("次", "a seguir") }}
+    <div class="coluna-corpo">
+      <h2 id="t-fazer" class="sr-only">A seguir</h2>
+      <div id="lista-area">
+        {% for task in todo %}{% set variant = "lista" %}{% include "partials/task_row.html" %}{% endfor %}
+      </div>
+      {% if not todo %}<p class="vazio">Sem tarefas na fila.</p>{% endif %}
+    </div>
+  </section>
+
+  <section class="coluna" aria-labelledby="t-estudos">
+    {{ marca("学び", "estudos da área") }}
+    <div class="coluna-corpo solto" style="gap:18px">
+      <h2 id="t-estudos" class="sr-only">Estudos da área</h2>
+      {% for r in learning %}
+      <div>
+        <div class="titulo-item">{{ r.title }}</div>
+        <div class="linha-sub">
+          {% if r.progress_total %}{{ r.progress_current | num }} de {{ r.progress_total | num }} {{ r.progress_unit or "" }}{% endif %}
+          {% if r.author %}{% if r.progress_total %}, {% endif %}{{ r.author }}{% endif %}
+        </div>
+        {% if r.progress_total %}<div style="margin-top:10px">{{ progresso(fraction(r), calmo=not loop.first) }}</div>{% endif %}
+        <form class="form-linha" method="post" action="/recursos/{{ r.id }}/progresso" style="margin-top:8px">
+          <input type="hidden" name="voltar" value="/area/{{ area.slug }}">
+          <label for="av-{{ r.id }}" class="linha-sub">avancei</label>
+          <input id="av-{{ r.id }}" name="advance" inputmode="decimal" placeholder="1">
+          <button type="submit" class="acao">registrar</button>
+        </form>
+      </div>
+      {% else %}
+      <p class="vazio" style="padding:0">Cursos e materiais que você estuda para esta área aparecem aqui.</p>
+      {% endfor %}
+      <details class="adicionar">
+        <summary>Novo curso ou material</summary>
+        {% with kind="course", voltar="/area/" ~ area.slug %}{% include "partials/form_resource.html" %}{% endwith %}
+      </details>
+    </div>
+  </section>
+</div>
+
+{% include "partials/area_capture.html" %}
+{% include "partials/encerrar_area.html" %}
+{% endblock %}

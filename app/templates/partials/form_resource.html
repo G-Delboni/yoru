@@ -1,0 +1,19 @@
+{#- Formulário de curso, assunto ou material. Espera: area, kind, voltar -#}
+<form class="form-grade" method="post" action="/recursos">
+  <input type="hidden" name="voltar" value="{{ voltar }}">
+  <input type="hidden" name="area_id" value="{{ area.id }}">
+  <div class="campo largo"><label for="r-titulo">Nome</label><input id="r-titulo" name="title" required placeholder="FastAPI em produção"></div>
+  <div class="campo"><label for="r-tipo">Tipo</label>
+    <select id="r-tipo" name="kind">
+      <option value="course" {% if kind == "course" %}selected{% endif %}>Curso</option>
+      <option value="article">Artigo ou documentação</option>
+      <option value="other" {% if kind == "other" %}selected{% endif %}>Assunto ou outro</option>
+    </select></div>
+  <div class="campo"><label for="r-autor">Autor ou plataforma</label><input id="r-autor" name="author"></div>
+  <div class="campo"><label for="r-total">Tamanho (opcional)</label><input id="r-total" name="progress_total" inputmode="decimal" placeholder="8"></div>
+  <div class="campo"><label for="r-unidade">Unidade</label><input id="r-unidade" name="progress_unit" placeholder="módulos"></div>
+  <div class="campo largo"><label for="r-url">Link (opcional)</label><input id="r-url" name="url" type="url" placeholder="https://"></div>
+  <div class="campo"><label for="r-estado">Situação</label>
+    <select id="r-estado" name="status"><option value="active">Estudando agora</option><option value="wanted">Quero estudar</option></select></div>
+  <div class="acoes-form"><button type="submit" class="link-sublinhado">Adicionar</button></div>
+</form>

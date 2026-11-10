@@ -1,0 +1,8 @@
+<resources>
+    <!-- Tema do sistema só para a janela abrir já escura; o visual de verdade é o Compose (ui/theme). -->
+    <style name="Theme.Yoru" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0B0B0B</item>
+        <item name="android:statusBarColor">#0B0B0B</item>
+        <item name="android:navigationBarColor">#0E0E0E</item>
+    </style>
+</resources>

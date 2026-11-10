@@ -1,0 +1,20 @@
+<div id="foco-lista" data-atualizar="/hx/foco/lista" data-quando="foco">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">
+    <span class="enso-numero">{{ focus_minutes }}</span>
+    <span class="linha-sub" style="font-size:14px">{{ "minuto de foco hoje" if focus_minutes == 1 else "minutos de foco hoje" }}{% if focus_count %}, {{ focus_count }} {{ "sessão completa" if focus_count == 1 else "sessões completas" }}{% endif %}</span>
+  </div>
+  {% for s in sessions %}
+  {%- set area = areas_by_id.get(s.area_id) -%}
+  <div class="linha item">
+    <span class="linha-titulo" {% if s.kind == "break" %}style="color:var(--texto-2)"{% endif %}>
+      {% if s.kind == "break" %}Pausa{% else %}Foco{% endif %}, {{ s.minutes }} min{% if not s.completed %} <span class="linha-meta">(encerrada antes)</span>{% endif %}
+      <span class="linha-sub">{{ s.started_at | hora_local }}{% if area %}, {{ area.name | lower }}{% endif %}{% if s.note %}, {{ s.note }}{% endif %}</span>
+    </span>
+    <span class="acoes">
+      <form class="mini-form" method="post" action="/foco/sessoes/{{ s.id }}/excluir"><button type="submit" class="acao">excluir</button></form>
+    </span>
+  </div>
+  {% else %}
+  <p class="vazio">Nenhuma sessão hoje. Escolha o tempo e comece.</p>
+  {% endfor %}
+</div>

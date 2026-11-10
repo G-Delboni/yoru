@@ -1,0 +1,4 @@
+<div class="habitos-hoje" data-atualizar="/hx/habitos/hoje" data-quando="habitos">
+  {% for row in habit_rows %}{% set variant = "hoje" %}{% include "partials/habito_linha.html" %}{% endfor %}
+  {% if not habit_rows %}<p class="vazio">Nenhum hábito ainda. Crie em <a class="acao" href="/habitos">Hábitos</a>.</p>{% endif %}
+</div>

@@ -1,0 +1,33 @@
+{%- set h = row.habit -%}
+{% if variant == "hoje" %}
+<button type="button" class="habito-chip {% if row.done_today %}feito{% endif %}" data-post="/hx/habitos/{{ h.id }}/marcar" data-campo-variant="hoje"
+        aria-pressed="{{ 'true' if row.done_today else 'false' }}" title="{{ 'Desmarcar' if row.done_today else 'Marcar' }} hoje">
+  <i class="lua {% if row.done_today %}lua-cheia{% endif %}"></i>
+  <span>{% if h.kanji %}<span class="habito-kanji">{{ h.kanji }}</span> {% endif %}{{ h.name }}</span>
+  {% if row.streak >= 2 %}<span class="linha-meta">{{ row.streak }} dias</span>{% endif %}
+</button>
+{% else %}
+<div class="linha item habito" data-habito="{{ h.id }}">
+  <span class="linha-titulo">
+    {% if h.kanji %}<span class="habito-kanji">{{ h.kanji }}</span> {% endif %}{{ h.name }}
+    <span class="linha-sub">
+      {%- if h.days_per_week < 7 %}{{ h.days_per_week }}× por semana, {% endif -%}
+      {%- if row.streak >= 2 %}{{ row.streak }} dias seguidos{% elif row.streak == 1 %}1 dia{% else %}sem sequência{% endif -%}
+      , {{ row.week_done }} de 7 nesta semana
+    </span>
+  </span>
+  <span class="luas luas-habito" role="group" aria-label="Últimos 7 dias">
+    {% for d, feito in row.days %}
+    <button type="button" class="lua-botao" data-post="/hx/habitos/{{ h.id }}/marcar" data-alvo="closest .habito" data-campo-day="{{ d.isoformat() }}"
+            aria-pressed="{{ 'true' if feito else 'false' }}" title="{{ d | data_curta }}">
+      <i class="lua {% if feito %}lua-cheia{% endif %}{% if loop.last %} alvo{% endif %}"></i>
+      <small>{{ (d | semana)[:1] }}</small>
+    </button>
+    {% endfor %}
+  </span>
+  <span class="acoes">
+    <form class="mini-form" method="post" action="/habitos/{{ h.id }}/estado"><input type="hidden" name="acao" value="arquivar"><button type="submit" class="acao">arquivar</button></form>
+    <form class="mini-form" method="post" action="/habitos/{{ h.id }}/estado"><input type="hidden" name="acao" value="excluir"><button type="submit" class="acao">excluir</button></form>
+  </span>
+</div>
+{% endif %}
